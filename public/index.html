@@ -1,0 +1,41 @@
+<!doctype html>
+
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<title>Characters weapon/element</title>
+	<meta name="description" content="Genshin Impact characters weapon/element.">
+	<meta name="author" content="MirrorImage">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
+	<link rel="stylesheet" href="css/index.css">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
+	<script defer="defer" src="js/index.js"></script>
+</head>
+
+<body>
+	<article id="content"></article>
+	<script id="element-weapon" type="text/ractive">
+		<table>
+			<tr>
+				<th>&nbsp;</th>
+				{{#each elements}}
+				<th><img src="{{image}}" alt="{{name}}" /></th>
+				{{/each}}
+			</tr>
+			{{#each weapons as w}}
+			<tr>
+				<th><img src="{{w.image}}" alt="{{w.name}}" /></th>
+				{{#each elements as e}}
+				<td>
+					{{#each filter(characters, {weapon: w.name, element: e.name})}}
+						<div class="character" style="background-image: url({{image}})" data-grade="{{grade}}"></div>
+					{{/each}}
+				</td>
+				{{/each}}
+			</tr>
+			{{/each}}
+		</table>
+	</script>
+</body>
+</html>

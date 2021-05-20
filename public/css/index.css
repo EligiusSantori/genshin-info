@@ -1,0 +1,21 @@
+:root {
+	--el-size: 128px;
+	--grade4-color: rgba(154,112,175,1);
+	--grade5-color: rgba(193,117,33,1);
+}
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 3px solid black; text-align: center; }
+td { padding: 1em; line-height: 0; }
+th { padding: 1em; }
+th img { max-height: var(--el-size); }
+.character {
+	display: inline-block;
+	width: var(--el-size);
+	height: var(--el-size);
+	border-radius: 50%;
+	border: 3px solid black;
+	background: center no-repeat;
+	margin: 5px;
+}
+.character[data-grade="4"] { background-color: var(--grade4-color); border-color: var(--grade4-color); }
+.character[data-grade="5"] { background-color: var(--grade5-color); border-color: var(--grade5-color); }
