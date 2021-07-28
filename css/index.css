@@ -5,8 +5,8 @@
 }
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 3px solid black; text-align: center; }
-td { padding: 1em; line-height: 0; }
-th { padding: 1em; }
+td { padding: 0.5em; line-height: 0; }
+th { padding: 0.5em; }
 th img { max-height: var(--el-size); }
 .character {
 	display: inline-block;
