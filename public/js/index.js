@@ -16,8 +16,9 @@ var db = {
 		{name: "Catalyst", image: "images/Catalyst.png"},
 	],
 	characters: [
-		//{name:"Traveler", element:"", weapon:"Sword", gender:"Player's Choice", city:""},
+		//{name:"Traveler", grade: 5, element:"", weapon:"Sword", gender:"", city:"", image: ""},
 		{name:"Albedo", grade: 5, element:"Geo", weapon:"Sword", gender:"Male", city:"Mondstadt", image: "images/albedopng.png"},
+		{name:"Aloy", grade: 5, element:"Cryo", weapon:"Bow", gender:"Female", city:"Other", image: "images/zz1627420885aloypng.png"},
 		{name:"Amber", grade: 4, element:"Pyro", weapon:"Bow", gender:"Female", city:"Mondstadt", image: "images/amberpng.png"},
 		{name:"Ayaka", grade: 5, element:"Cryo", weapon:"Sword", gender:"Female", city:"Inazuma", image: "images/ayakapng.png"},
 		{name:"Barbara", grade: 4, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/barbarapng.png"},
@@ -35,16 +36,20 @@ var db = {
 		{name:"Kazuha", grade: 5, element:"Anemo", weapon:"Sword", gender:"Male", city:"Inazuma", image: "images/zz1619371051kazuhapng.png"},
 		{name:"Keqing", grade: 5, element:"Electro", weapon:"Sword", gender:"Female", city:"Liyue", image: "images/keqingpng.png"},
 		{name:"Klee", grade: 5, element:"Pyro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/kleepng.png"},
+		{name:"Kokomi", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Inazuma", image: "images/zz1627420866kokomipng.png"},
 		{name:"Lisa", grade: 4, element:"Electro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/lisapng.png"},
 		{name:"Mona", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/monapng.png"},
 		{name:"Ningguang", grade: 4, element:"Geo", weapon:"Catalyst", gender:"Female", city:"Liyue", image: "images/ningguangpng.png"},
 		{name:"Noelle", grade: 4, element:"Geo", weapon:"Claymore", gender:"Female", city:"Mondstadt", image: "images/noellepng.png"},
 		{name:"Qiqi", grade: 5, element:"Cryo", weapon:"Sword", gender:"Female", city:"Liyue", image: "images/qiqipng.png"},
+		{name:"Raiden", grade: 5, element:"Electro", weapon:"Polearm", gender:"Female", city:"Inazuma", image: "images/zz1627420825shougunpng.png"},
 		{name:"Razor", grade: 4, element:"Electro", weapon:"Claymore", gender:"Male", city:"Mondstadt", image: "images/razorpng.png"},
 		{name:"Rosaria", grade: 4, element:"Cryo", weapon:"Polearm", gender:"Female", city:"Mondstadt", image: "images/zz1612313327r2png.png"},
+		{name:"Sara", grade: 4, element:"Electro", weapon:"Bow", gender:"Female", city:"Inazuma", image: "images/zz1627420840sarapng.png"},
 		{name:"Sayu", grade: 4, element:"Anemo", weapon:"Claymore", gender:"Female", city:"Inazuma", image: "images/zz1623072238sayupng.png"},
 		{name:"Sucrose", grade: 4, element:"Anemo", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/sucrosepng.png"},
 		{name:"Tartaglia", grade: 5, element:"Hydro", weapon:"Bow", gender:"Male", city:"Snezhnaya", image: "images/tartagliapng.png"},
+		{name:"Thoma", grade: 4, element:"Pyro", weapon:"Polearm", gender:"Male", city:"Inazuma", image: "images/zz1630625061thomapng.png"},
 		{name:"Venti", grade: 5, element:"Anemo", weapon:"Bow", gender:"Male", city:"Mondstadt", image: "images/ventipng.png"},
 		{name:"Xiangling", grade: 4, element:"Pyro", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/xianglingpng.png"},
 		{name:"Xiao", grade: 5, element:"Anemo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/xiaopng.png"},
@@ -55,14 +60,3 @@ var db = {
 		{name:"Zhongli", grade: 5, element:"Geo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/zhonglipng.png"},
 	],
 };
-
-var ractive = new Ractive({
-	target: '#content',
-	template: '#element-weapon',
-	data: {
-		characters: db.characters,
-		weapons: db.weapons,
-		elements: db.elements,
-		filter: _.filter,
-	},
-});
