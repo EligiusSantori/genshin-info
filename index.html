@@ -37,5 +37,19 @@
 			{{/each}}
 		</table>
 	</script>
+	<script type="text/javascript">
+		window.onload = function() {
+			var ractive = new Ractive({
+				target: '#content',
+				template: '#element-weapon',
+				data: {
+					characters: db.characters,
+					weapons: db.weapons,
+					elements: db.elements,
+					filter: _.filter,
+				},
+			});
+		}
+	</script>
 </body>
 </html>

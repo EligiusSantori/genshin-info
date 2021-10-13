@@ -1,0 +1,115 @@
+<!doctype html>
+
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<title>Characters by weapon/element</title>
+	<meta name="description" content="Genshin Impact characters by weapon/element.">
+	<meta name="author" content="MirrorImage">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
+	<link rel="stylesheet" href="css/index.css">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
+	<script defer="defer" src="js/index.js"></script>
+</head>
+
+<body>
+	<article id="content"></article>
+	<script id="layout" type="text/ractive">
+		<dps /><br />
+		<shields />
+	</script>
+	<script id="weapon-tier" type="text/ractive">
+		<table>
+			<caption>{{caption}}</caption>
+			<tr>
+				<th>&nbsp;</th>
+				{{#each weapons}}
+				<th><img src="{{image}}" alt="{{name}}" /></th>
+				{{/each}}
+			</tr>
+			{{#each tiers as characters: tier}}
+			<tr>
+				<th><h1>{{tier}}</h1></th>
+				{{#each weapons as w}}
+				<td>
+					{{#each filter(characters, {weapon: w.name})}}
+						<div class="character {{virtual ? 'virtual' : ''}}" style="background-image: url({{image}})" data-grade="{{grade}}"></div>
+					{{/each}}
+				</td>
+				{{/each}}
+			</tr>
+			{{/each}}
+		</table>
+	</script>
+	<script id="plain-tier" type="text/ractive">
+		<table>
+			<caption>{{caption}}</caption>
+			{{#each tiers as characters: tier}}
+			<tr>
+				<th><h1>{{tier}}</h1></th>
+				<td>
+					{{#each characters}}
+					<div class="character " style="background-image: url({{image}})" data-grade="{{grade}}"></div>
+					{{/each}}
+				</td>
+			</tr>
+			{{/each}}
+		</table>
+	</script>
+	<script type="text/javascript">
+		window.onload = function() {
+			var dps = {
+				S: ['Xiao', 'Ganyu', 'Raiden?'],
+				A: [
+					'Ayaka', 'Eula', 'Hu Tao',
+					'Kokomi?', 'Noelle?'
+				],
+				B: [
+					'Keqing', 'Diluc', 'Klee', 'Mona', 'Razor', 'Yoimiya', 'Tartaglia',
+					'Jean?', 'Sayu?', 'Beidou?', 'Fischl?'
+				],
+				C: [
+					'Rosaria', 'Kaeya', 'Fischl', 'Beidou', 'Yanfei', 'Ningguang',
+					'Qiqi?', 'Sara?'
+				],
+			};
+
+			var shields = {
+				S: ['Zhongli'],
+				A: ['Noelle', 'Xinyan', 'Thoma'],
+				B: ['Diona'],
+				C: ['Beidou'],
+			};
+
+			function component(name, tiers, template) {
+				return Ractive.extend({
+					template: template,
+					isolated: false,
+					data: () => ({
+						caption: name,
+						tiers: _.mapValues(tiers, l => _.reduce(db.characters, function(a, c) {
+							let n = _.head(_.intersection(l, [c.name, c.name + '?']));
+							n && a.push(_.assign({}, c, {virtual: _.endsWith(n, '?')}));
+							return a;
+						}, [])),
+					}),
+				})
+			}
+
+			var ractive = new Ractive({
+				target: '#content',
+				template: '#layout',
+				components: {
+					dps: component('DPS', dps, '#weapon-tier'),
+					shields: component('Shields', shields, '#plain-tier'),
+				},
+				data: {
+					weapons: db.weapons,
+					filter: _.filter,
+				},
+			});
+		}
+	</script>
+</body>
+</html>
