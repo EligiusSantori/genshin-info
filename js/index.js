@@ -58,5 +58,9 @@ var db = {
 		{name:"Yanfei", grade: 4, element:"Pyro", weapon:"Catalyst", gender:"Female", city:"Liyue", image: "images/zz1616626517yanfeipng.png"},
 		{name:"Yoimiya", grade: 5, element:"Pyro", weapon:"Bow", gender:"Female", city:"Inazuma", image: "images/zz1623072217yoimiyapng.png"},
 		{name:"Zhongli", grade: 5, element:"Geo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/zhonglipng.png"},
+		{name:"Itto", grade: 5, element:"Geo", weapon:"Claymore", gender:"Male", city:"Inazuma", image: "images/zz1634212968ittopng.png"},
+		{name:"Gorou", grade: 4, element:"Geo", weapon:"Bow", gender:"Male", city:"Inazuma", image: "images/zz1634212991goroupng.png"},
+		{name:"Shenhe", grade: 5, element:"Cryo", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/zz1637940561shenhepng.png"},
+		{name:"Yun Jin", grade: 4, element:"Geo", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/zz1637940580yunjinpng.png"},
 	],
 };
