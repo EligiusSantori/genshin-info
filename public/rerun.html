@@ -7,8 +7,8 @@
 	<meta name="description" content="Genshin Impact characters rerun retentions.">
 	<meta name="author" content="MirrorImage">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
-	<!-- <link rel="stylesheet" href="css/index.css"> -->
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/moment@2.29.3/moment.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
 	<script defer="defer" src="js/index.js"></script>
 	<style>
@@ -19,23 +19,27 @@
 			--grade5-st-color: rgba(193,117,33,0.7);
 		}
 		html, body, #content, table { height: 100%; padding: 0; margin: 0; }
-		table { width: 100%; table-layout: fixed; font-size: x-small; }
-		caption { display: none; }
+		table { width: 100%; table-layout: fixed; font-size: x-small; line-height: 1; }
 		th, td {
-			border: 1px #777 solid;
+			border: thin #777 solid;
 			padding: 0;
 			text-align: center;
 			vertical-align: middle;
-			line-height: 1.5;
 		}
+		td { color: #333; }
+		.now { color: white; font-weight: bold; }
+		/* td:not(.now) { font-style: italic; } */
 		tr:first-of-type th:first-child { width: 10em; }
 		tr[data-grade="4"] { background-color: var(--grade4-st-color); }
 		tr[data-grade="5"] { background-color: var(--grade5-st-color); }
 		tr[data-grade="4"] th { background-color: var(--grade4-color); }
 		tr[data-grade="5"] th { background-color: var(--grade5-color); }
-		td.now { background-color: #66cc33; }
-		tbody tr:hover th, tbody tr:hover td:not(.now) { background-color: #dd9 !important; }
-		.value { border-radius: 1em; line-height: 1; color: #555; margin: 0 0.5em; }
+		tr[data-grade="4"] .now { background-color: #99cc66; }
+		tr[data-grade="5"] .now { background-color: #33cc00; }
+
+		thead { line-height: 1.5; background-color: #666666; color: white; }
+		thead th { border-color: #999999; }
+		tbody tr:hover th, tbody tr:hover td:not(.now), th.hover:not(.now), td.hover:not(.now) { background-color: #dd9 !important; }
 	</style>
 </head>
 
@@ -43,67 +47,130 @@
 	<article id="content"></article>
 	<script id="layout" type="text/ractive">
 		<table>
-			<caption>{{caption}}</caption>
-			<colgroup><col />{{#each banners}}<col />{{/each}}</colgroup>
 			<thead>
 				<tr>
-					<th rowspan="2">&nbsp;</th>
+					<th rowspan="2">
+						<select value={{sort.type}}>
+							<option value="alphabet">&darr;Name</option>
+							<option value="release">&darr;Release</option>
+							<option value="rerun">&darr;Re-runs</option>
+							<option value="delay">&darr;Delay</option>
+						</select><br/>
+						<label><input type="checkbox" checked="{{sort.grade}}" />&darr;Grade</label>
+					</th>
 					{{#each years}}
 					<th colspan="{{.}}">{{@key}}</th>
 					{{/each}}
 				</tr>
 				<tr>
 					{{#each banners: i}}
-					<th>{{start.toISOString().match(/\d{4}-(\d{2})-(\d{2})/).slice(1,3).join('-')}}</th>
+					<th data-banner="{{i}}">{{start.format('MM-DD')}}</th>
 					{{/each}}
 				</tr>
 			</thead>
 			<tbody>
-				{{#each data as r: i}}
-					{{#unless excluded.includes(characters[i].name)}}
-					<tr data-grade="{{characters[i].grade}}">
-						<th>{{characters[i].name}}</th>
-						{{#each r as v: j}}
-							{{#if v}}
-							<td style="background-color: rgba(204, 0, 0, {{v/100*5}})">{{{ v > 0 ? v : '&nbsp;' }}}</td>
-							{{else}}
-							<td class-now="(v == 0)"></td>
-							{{/if}}
-						{{/each}}
-					</tr>
-					{{/unless}}
+			{{#each data as r}}
+				{{#unless excluded.includes(r[0].name)}}
+				<tr data-grade="{{r[0].grade}}">
+				{{#each r as v: i}}
+					{{#if i == 0}}
+					<th data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover">{{v.name}}</th>
+					{{elseif v >= 0}}
+					<td data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover" style="background-color: rgba(204, 0, 0, {{v/365}})">{{v}}</td>
+					{{elseif v < 0}}
+					<td data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover" class="now">{{-v}}</td>
+					{{else}}
+					<td data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover">&nbsp;</td>
+					{{/if}}
 				{{/each}}
+				</tr>
+				{{/unless}}
+			{{/each}}
 			</tbody>
 		</table>
 	</script>
 	<script type="text/javascript">
 		window.onload = function() {
-			let table = new Array(db.characters.length);
-			for(let i = 0; i < table.length; i++) {
-				let row = new Array(db.banners.length);
-				for(let j = 0, d = undefined; j < row.length; j++) {
-					d = db.banners[j].characters.includes(db.characters[i].name) ? 0 : d + 1;
-					row[j] = d;
-				}
-				table[i] = row;
+			db.banners.forEach(b => b.start = moment(b.start));
+			function neg2inf(n) {
+				return n < 0 ? Number.POSITIVE_INFINITY : n;
 			}
-
-			let years = {};
-			db.banners.forEach(function(b) {
-				let y = b.start.getFullYear();
-				years[y] ? years[y]++ : years[y] = 1;
-			});
+			function order(by, banners) {
+				let byRelease = c => neg2inf(_.findIndex(banners, b => b.characters.includes(c.name)));
+				let byRerun = c => -_.sumBy(banners, b => b.characters.includes(c.name) ? 1 : 0);
+				let byDelay = c => _.maxBy(
+						[{start: moment(0), characters: []}, ...banners],
+						b => b.characters.includes(c.name) ? b.start.valueOf() : 0)
+					.start.valueOf() || Number.POSITIVE_INFINITY;
+				let byGrade = c => -c.grade;
+				let how =
+					(by.type == 'alphabet' && !by.grade) ? ['name'] :
+					(by.type == 'alphabet' && by.grade) ? [byGrade, 'name'] :
+					(by.type == 'release' && !by.grade) ? [byRelease, byGrade, 'name'] :
+					(by.type == 'release' && by.grade) ? [byGrade, byRelease, 'name'] :
+					(by.type == 'rerun' && !by.grade) ? [byRerun, byGrade, 'name'] :
+					(by.type == 'rerun' && by.grade) ? [byGrade, byRerun, 'name'] :
+					(by.type == 'delay' && !by.grade) ? [byDelay, byGrade, 'name'] :
+					(by.type == 'delay' && by.grade) ? [byGrade, byDelay, 'name'] :
+					[];
+				return how;
+			}
+			function table(characters, banners) {
+				// console.log(Date.now());
+				let data = new Array(characters.length);
+				for(let i = 0; i < data.length; i++) {
+					let row = new Array(banners.length + 1);
+					let character = row[0] = characters[i];
+					for(let j = 1, r = 0, p = undefined; j < row.length; j++) {
+						let banner = banners[j - 1];
+						if(banner.characters.includes(character.name)) {
+							p = j;
+							row[j] = --r;
+						} else if(p) {
+							row[j] = p == j ? 0 : banner.start.diff(banners[p].start, 'days');
+						}
+					}
+					data[i] = row;
+				}
+				return data;
+			}
+			function update() {
+				this.set('data', table(_.sortBy(db.characters, order(this.get('sort'), db.banners)), db.banners));
+			}
 
 			var ractive = new Ractive({
 				target: '#content',
 				template: '#layout',
 				data: {
 					excluded: ["Aloy", "Jean", "Mona", "Qiqi", "Diluc", "Keqing", "Amber", "Kaeya", "Lisa"],
-					characters: db.characters,
 					banners: db.banners,
-					years: years,
-					data: table,
-					filter: _.filter,
+					data: {},
+					sort: {
+						type: 'alphabet',
+						grade: false,
+					},
+				},
+				computed: {
+					years: function() {
+						let years = {};
+						this.get('banners').map(b => b.start.year())
+							.forEach(y => years[y] ? years[y]++ : years[y] = 1);
+						return years;
+					},
+				},
+				onconfig: update,
+				observe: {
+					'sort.type sort.grade': {
+						handler: update,
+						init: false,
+					}
+				},
+				on: {
+					cellHover: function({node, event}) {
+						let banner = node.getAttribute('data-banner');
+						node.closest('table').querySelectorAll('[data-banner="'+banner+'"]')
+							.forEach(cell => cell.classList.toggle('hover', event.type == 'mouseenter' && parseInt(banner) >= 0));
+					},
 				},
 			});
 		}
