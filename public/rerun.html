@@ -19,7 +19,7 @@
 			--grade5-st-color: rgba(193,117,33,0.7);
 		}
 		html, body, #content, table { height: 100%; padding: 0; margin: 0; }
-		table { width: 100%; overflow: hidden; table-layout: fixed; border: none; font-size: x-small; line-height: 1; }
+		table { width: 100%; overflow: hidden; border: none; font-size: x-small; line-height: 1; }
 		th, td {
 			border: thin #777 solid;
 			padding: 0;
@@ -28,7 +28,8 @@
 			position: relative;
 		}
 		td { color: #333; }
-		.now { color: white; font-weight: bold; }
+		.now { color: white; }
+		.now .value { position: absolute; left: 0; top: 0; }
 		/* td:not(.now) { font-style: italic; } */
 		tr:first-of-type th:first-child { width: 10em; }
 		tr[data-grade="4"] { background-color: var(--grade4-st-color); }
@@ -36,7 +37,7 @@
 		tr[data-grade="4"] th { background-color: var(--grade4-color); }
 		tr[data-grade="5"] th { background-color: var(--grade5-color); }
 		tr[data-grade="4"] .now .value { background-color: #99cc66; }
-		tr[data-grade="5"] .now .value { background-color: #33cc00; }
+		tr[data-grade="5"] .now .value { background-color: #33cc00; font-weight: bold; }
 
 		thead { line-height: 1.5; background-color: #666666; color: white; }
 		thead th { background-color: #666666; border-color: #999999; }
@@ -62,15 +63,15 @@
 			<thead>
 				<tr>
 					<th rowspan="2">
+						<label><input type="checkbox" checked="{{highlight}}" /> Hover</label>
+						<label><input type="checkbox" checked="{{sort.grade}}" />&darr;Grade</label><br/>
 						<select value={{sort.type}}>
 							<option value="alphabet">&darr;Name</option><!-- By character name. -->
 							<option value="release">&darr;Release</option><!-- By release date. -->
 							<option value="delay">&darr;Delay</option><!-- By current re-run delay. -->
 							<option value="average">&darr;Average</option><!-- By average re-run delay. -->
 							<option value="rerun">&darr;Re-runs</option><!-- By re-runs count. -->
-						</select><br/>
-						<label><input type="checkbox" checked="{{sort.grade}}" />&darr;Grade</label>
-						<label><input type="checkbox" checked="{{highlight}}" />Hover</label>
+						</select>
 					</th>
 					{{#each years}}<th colspan="{{.}}">{{@key}}</th>{{/each}}
 				</tr>
@@ -100,9 +101,6 @@
 	<script type="text/javascript">
 		window.onload = function() {
 			db.banners.forEach(b => b.start = moment(b.start));
-			function neg2inf(n) {
-				return n < 0 ? Number.POSITIVE_INFINITY : n;
-			}
 			function order(by, banners) {
 				let byRelease = c => _.invoke(banners.find(b => b.characters.includes(c.name)), 'start.valueOf') || Number.POSITIVE_INFINITY;
 				let byDelay = c => _.invoke(_.findLast(banners, b => b.characters.includes(c.name)), 'start.valueOf') || Number.POSITIVE_INFINITY;
