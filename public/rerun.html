@@ -19,12 +19,13 @@
 			--grade5-st-color: rgba(193,117,33,0.7);
 		}
 		html, body, #content, table { height: 100%; padding: 0; margin: 0; }
-		table { width: 100%; table-layout: fixed; font-size: x-small; line-height: 1; }
+		table { width: 100%; overflow: hidden; table-layout: fixed; border: none; font-size: x-small; line-height: 1; }
 		th, td {
 			border: thin #777 solid;
 			padding: 0;
 			text-align: center;
 			vertical-align: middle;
+			position: relative;
 		}
 		td { color: #333; }
 		.now { color: white; font-weight: bold; }
@@ -34,39 +35,46 @@
 		tr[data-grade="5"] { background-color: var(--grade5-st-color); }
 		tr[data-grade="4"] th { background-color: var(--grade4-color); }
 		tr[data-grade="5"] th { background-color: var(--grade5-color); }
-		tr[data-grade="4"] .now { background-color: #99cc66; }
-		tr[data-grade="5"] .now { background-color: #33cc00; }
+		tr[data-grade="4"] .now .value { background-color: #99cc66; }
+		tr[data-grade="5"] .now .value { background-color: #33cc00; }
 
 		thead { line-height: 1.5; background-color: #666666; color: white; }
-		thead th { border-color: #999999; }
-		tbody tr:hover th, tbody tr:hover td:not(.now), th.hover:not(.now), td.hover:not(.now) { background-color: #dd9 !important; }
+		thead th { background-color: #666666; border-color: #999999; }
+
+		.hover th:hover:before, .hover th:hover:after, .hover td:hover:before, .hover td:hover:after {
+			content: '';
+			display: block;
+			position: absolute;
+			z-index: 1;
+			background-color: #dd9;
+		}
+		tbody th:hover:before, td:hover:before { width: 200vw; height: 100%; left: -100vw; top: 0; }
+		thead tr:not(:first-of-type) th:hover:after, td:hover:after { width: 100%; height: 200vh; left: 0; top: -100vh; }
+		thead tr:first-child th { z-index: 100; border-top: none; }
+		.value { display: flex; width: 100%; height: 100%; justify-content: center; align-items: center; position: relative; z-index: 2; }
 	</style>
 </head>
 
 <body>
 	<article id="content"></article>
 	<script id="layout" type="text/ractive">
-		<table>
+		<table class-hover="highlight">
 			<thead>
 				<tr>
 					<th rowspan="2">
 						<select value={{sort.type}}>
-							<option value="alphabet">&darr;Name</option>
-							<option value="release">&darr;Release</option>
-							<option value="rerun">&darr;Re-runs</option>
-							<option value="delay">&darr;Delay</option>
+							<option value="alphabet">&darr;Name</option><!-- By character name. -->
+							<option value="release">&darr;Release</option><!-- By release date. -->
+							<option value="delay">&darr;Delay</option><!-- By current re-run delay. -->
+							<option value="average">&darr;Average</option><!-- By average re-run delay. -->
+							<option value="rerun">&darr;Re-runs</option><!-- By re-runs count. -->
 						</select><br/>
 						<label><input type="checkbox" checked="{{sort.grade}}" />&darr;Grade</label>
+						<label><input type="checkbox" checked="{{highlight}}" />Hover</label>
 					</th>
-					{{#each years}}
-					<th colspan="{{.}}">{{@key}}</th>
-					{{/each}}
+					{{#each years}}<th colspan="{{.}}">{{@key}}</th>{{/each}}
 				</tr>
-				<tr>
-					{{#each banners: i}}
-					<th data-banner="{{i}}">{{start.format('MM-DD')}}</th>
-					{{/each}}
-				</tr>
+				<tr>{{#each banners: i}}<th><span class="value">{{start.format('MM-DD')}}</span></th>{{/each}}</tr>
 			</thead>
 			<tbody>
 			{{#each data as r}}
@@ -74,13 +82,13 @@
 				<tr data-grade="{{r[0].grade}}">
 				{{#each r as v: i}}
 					{{#if i == 0}}
-					<th data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover">{{v.name}}</th>
+					<th><span class="value">{{v.name}}</span></th>
 					{{elseif v >= 0}}
-					<td data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover" style="background-color: rgba(204, 0, 0, {{v/365}})">{{v}}</td>
+					<td style="background-color: rgba(204, 0, 0, {{v/365}})"><span class="value">{{v}}</span></td>
 					{{elseif v < 0}}
-					<td data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover" class="now">{{-v}}</td>
+					<td class="now"><span class="value">{{-v}}</span></td>
 					{{else}}
-					<td data-banner="{{i-1}}" on-mouseenter="cellHover" on-mouseleave="cellHover">&nbsp;</td>
+					<td><span class="value"></span></td>
 					{{/if}}
 				{{/each}}
 				</tr>
@@ -96,22 +104,23 @@
 				return n < 0 ? Number.POSITIVE_INFINITY : n;
 			}
 			function order(by, banners) {
-				let byRelease = c => neg2inf(_.findIndex(banners, b => b.characters.includes(c.name)));
-				let byRerun = c => -_.sumBy(banners, b => b.characters.includes(c.name) ? 1 : 0);
-				let byDelay = c => _.maxBy(
-						[{start: moment(0), characters: []}, ...banners],
-						b => b.characters.includes(c.name) ? b.start.valueOf() : 0)
-					.start.valueOf() || Number.POSITIVE_INFINITY;
+				let byRelease = c => _.invoke(banners.find(b => b.characters.includes(c.name)), 'start.valueOf') || Number.POSITIVE_INFINITY;
+				let byDelay = c => _.invoke(_.findLast(banners, b => b.characters.includes(c.name)), 'start.valueOf') || Number.POSITIVE_INFINITY;
+				let byAverage = c => (r => r.length ? r.length / moment().diff(r[0].start) : Number.POSITIVE_INFINITY)
+					(banners.filter(b => b.characters.includes(c.name)));
+				let byRerun = c => -banners.filter(b => b.characters.includes(c.name)).length;
 				let byGrade = c => -c.grade;
 				let how =
 					(by.type == 'alphabet' && !by.grade) ? ['name'] :
 					(by.type == 'alphabet' && by.grade) ? [byGrade, 'name'] :
 					(by.type == 'release' && !by.grade) ? [byRelease, byGrade, 'name'] :
 					(by.type == 'release' && by.grade) ? [byGrade, byRelease, 'name'] :
-					(by.type == 'rerun' && !by.grade) ? [byRerun, byGrade, 'name'] :
-					(by.type == 'rerun' && by.grade) ? [byGrade, byRerun, 'name'] :
 					(by.type == 'delay' && !by.grade) ? [byDelay, byGrade, 'name'] :
 					(by.type == 'delay' && by.grade) ? [byGrade, byDelay, 'name'] :
+					(by.type == 'average' && !by.grade) ? [byAverage, byGrade, 'name'] :
+					(by.type == 'average' && by.grade) ? [byGrade, byAverage, 'name'] :
+					(by.type == 'rerun' && !by.grade) ? [byRerun, byGrade, 'name'] :
+					(by.type == 'rerun' && by.grade) ? [byGrade, byRerun, 'name'] :
 					[];
 				return how;
 			}
@@ -149,6 +158,7 @@
 						type: 'alphabet',
 						grade: false,
 					},
+					highlight: false,
 				},
 				computed: {
 					years: function() {
@@ -163,13 +173,6 @@
 					'sort.type sort.grade': {
 						handler: update,
 						init: false,
-					}
-				},
-				on: {
-					cellHover: function({node, event}) {
-						let banner = node.getAttribute('data-banner');
-						node.closest('table').querySelectorAll('[data-banner="'+banner+'"]')
-							.forEach(cell => cell.classList.toggle('hover', event.type == 'mouseenter' && parseInt(banner) >= 0));
 					},
 				},
 			});
