@@ -98,5 +98,8 @@ var db = {
 		{start: new Date("2022-03-08"), type:"character", characters: ["Raiden", "Kokomi", "Bennett", "Xinyan", "Sara"]},
 		{start: new Date("2022-03-30"), type:"character", characters: ["Ayato", "Venti", "Sucrose", "Xiangling", "Yun Jin"]},
 		{start: new Date("2022-04-19"), type:"character", characters: ["Ayaka", "Razor", "Rosaria", "Sayu"]},
+		{start: new Date("2022-05-31"), type:"character", characters: ["Yelan", "Xiao", "Barbara", "Noelle", "Yanfei"]},
+		{start: new Date("2022-06-21"), type:"character", characters: ["Itto", "Kuki", "Gorou", "Chongyun"]},
+		//{start: new Date("2022-"), type:"character", characters: ["Klee", "Kazuha", "Yoimiya"]},
 	],
 };
