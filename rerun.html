@@ -19,7 +19,7 @@
 			--grade5-st-color: rgba(193,117,33,0.7);
 		}
 		html, body, #content, table { height: 100%; padding: 0; margin: 0; }
-		table { width: 100%; overflow: hidden; border: none; font-size: x-small; line-height: 1; }
+		table { width: 100%; overflow: hidden; border: none; font-size: small; line-height: 1; }
 		th, td {
 			border: thin #777 solid;
 			padding: 0;
@@ -108,7 +108,7 @@
 					(banners.filter(b => b.characters.includes(c.name)));
 				let byRerun = c => -banners.filter(b => b.characters.includes(c.name)).length;
 				let byGrade = c => -c.grade;
-				let how =
+				return (
 					(by.type == 'alphabet' && !by.grade) ? ['name'] :
 					(by.type == 'alphabet' && by.grade) ? [byGrade, 'name'] :
 					(by.type == 'release' && !by.grade) ? [byRelease, byGrade, 'name'] :
@@ -119,8 +119,7 @@
 					(by.type == 'average' && by.grade) ? [byGrade, byAverage, 'name'] :
 					(by.type == 'rerun' && !by.grade) ? [byRerun, byGrade, 'name'] :
 					(by.type == 'rerun' && by.grade) ? [byGrade, byRerun, 'name'] :
-					[];
-				return how;
+					[]);
 			}
 			function table(characters, banners) {
 				// console.log(Date.now());
