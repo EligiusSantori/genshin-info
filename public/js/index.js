@@ -32,6 +32,7 @@ var db = {
 		{name:"Fischl", grade: 4, element:"Electro", weapon:"Bow", gender:"Female", city:"Mondstadt", image: "images/fischlpng.png"},
 		{name:"Ganyu", grade: 5, element:"Cryo", weapon:"Bow", gender:"Female", city:"Liyue", image: "images/ganyupng.png"},
 		{name:"Gorou", grade: 4, element:"Geo", weapon:"Bow", gender:"Male", city:"Inazuma", image: "images/zz1634212991goroupng.png"},
+		{name:"Heizou", grade: 4, element:"Anemo", weapon:"Catalyst", gender:"Male", city:"Inazuma", image: "images/zz1652941189heizoupng.png"},
 		{name:"Hu Tao", grade: 5, element:"Pyro", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/hutaopng.png"},
 		{name:"Itto", grade: 5, element:"Geo", weapon:"Claymore", gender:"Male", city:"Inazuma", image: "images/zz1634212968ittopng.png"},
 		{name:"Jean", grade: 5, element:"Anemo", weapon:"Sword", gender:"Female", city:"Mondstadt", image: "images/jeanpng.png"},
@@ -100,6 +101,6 @@ var db = {
 		{start: new Date("2022-04-19"), type:"character", characters: ["Ayaka", "Razor", "Rosaria", "Sayu"]},
 		{start: new Date("2022-05-31"), type:"character", characters: ["Yelan", "Xiao", "Barbara", "Noelle", "Yanfei"]},
 		{start: new Date("2022-06-21"), type:"character", characters: ["Itto", "Kuki", "Gorou", "Chongyun"]},
-		//{start: new Date("2022-"), type:"character", characters: ["Klee", "Kazuha", "Yoimiya"]},
+		{start: new Date("2022-07-13"), type:"character", characters: ["Kazuha", "Klee", "Heizou", "Ningguang", "Thoma"]},
 	],
 };
