@@ -6,7 +6,7 @@ var db = {
 		{name: "Electro", image: "images/Element_Electro.png"},
 		{name: "Anemo", image: "images/Element_Anemo.png"},
 		{name: "Geo", image: "images/Element_Geo.png"},
-		//{name: "Dendro", image: "images/Element_Dendro.png"},
+		{name: "Dendro", image: "images/Element_Dendro.png"},
 	],
 	weapons: [
 		{name: "Sword", image: "images/Sword.png"},
@@ -67,6 +67,9 @@ var db = {
 		{name:"Yoimiya", grade: 5, element:"Pyro", weapon:"Bow", gender:"Female", city:"Inazuma", image: "images/zz1623072217yoimiyapng.png"},
 		{name:"Yun Jin", grade: 4, element:"Geo", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/zz1637940580yunjinpng.png"},
 		{name:"Zhongli", grade: 5, element:"Geo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/zhonglipng.png"},
+		{name:"Tighnari", grade: 5, element:"Dendro", weapon:"Bow", gender:"Male", city:"Sumeru", image: "images/zz1657773321tighnaripng.png"},
+		{name:"Collei", grade: 4, element:"Dendro", weapon:"Bow", gender:"Female", city:"Sumeru", image: "images/zz1657773344colleipng.png"},
+		{name:"Dori", grade: 4, element:"Electro", weapon:"Claymore", gender:"Female", city:"Sumeru", image: "images/zz1657773372doripng.png"},
 	],
 	banners: [
 		//{start: new Date(""), type:"standard", characters:["", "", "", ""]},
@@ -102,5 +105,8 @@ var db = {
 		{start: new Date("2022-05-31"), type:"character", characters: ["Yelan", "Xiao", "Barbara", "Noelle", "Yanfei"]},
 		{start: new Date("2022-06-21"), type:"character", characters: ["Itto", "Kuki", "Gorou", "Chongyun"]},
 		{start: new Date("2022-07-13"), type:"character", characters: ["Kazuha", "Klee", "Heizou", "Ningguang", "Thoma"]},
+		{start: new Date("2022-08-02"), type:"character", characters: ["Yoimiya", "Bennett", "Xinyan", "Yun Jin"]},
+		{start: new Date("2022-08-24"), type:"character", characters: ["Tighnari", "Zhongli", "Collei", /*FIXME"", ""*/]},
+		{start: new Date("2022-09-14"), type:"character", characters: ["Ganyu", "Kokomi", "Dori", /*FIXME"", ""*/]},
 	],
 };
