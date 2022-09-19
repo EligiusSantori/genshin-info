@@ -29,7 +29,7 @@
 				{{#each elements as e}}
 				<td>
 					{{#each filter(characters, {weapon: w.name, element: e.name})}}
-						<div class="character" style="background-image: url({{image}})" data-grade="{{grade}}"></div>
+						<div class="character" style="background-image: url({{image}})" title="{{name}}" data-grade="{{grade}}"></div>
 					{{/each}}
 				</td>
 				{{/each}}

@@ -1,0 +1,114 @@
+<!doctype html>
+
+<html lang="en">
+	<head>
+	<meta charset="utf-8">
+	<title>Game probabilities</title>
+	<meta name="description" content="Genshin Impact various probabilities.">
+	<meta name="author" content="MirrorImage">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
+	<link rel="stylesheet" href="css/avatar-matrix.css">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
+</head>
+
+<body>
+	<article id="content"></article>
+	<script id="artifact-chances" type="text/ractive">
+		<table>
+			<tr>
+				<th colspan="2" rowspan="2">
+					<button name="origin" on-click="@this.toggleOrigin()">Origin: {{ origin == 'domain' ? 'domain' : 'strongbox/boss' }}</button><br />
+					<button name="enchant" on-click="@this.toggleEnchant()">Enchant: {{ enchant == 0 ? 'zero loss' : 'single loss'}}</button>
+				</th>
+				<th colspan="2">Chances to roll</th>
+				<th rowspan="2">Chances to obtain</th>
+				<th rowspan="2">Chances to enchant</th>
+				<th rowspan="2">Chances to obtain & enchant</th>
+				<th rowspan="2">Maximum<br />useful stats</th>
+			</tr>
+			<tr>
+				<th>For 4-stats artifact</th>
+				<th>For 3-stats artifact</th>
+			</tr>
+			<tr>
+				<th rowspan="5">Desired amount of initial useful bonus stats</th>
+			</tr>
+			{{#each [4, 3, 2, 1] as n}}
+			<tr>
+				<th>{{ n }} stats</th>
+				<td>{{ percent(@this.roll(n, 4)) }}</td>
+				<td>{{ percent(@this.roll(n, 3)) }}</td>
+				<td>{{ percent(@this.obtain(n)) }}</td>
+				<td>{{ percent(@this.enchant(n)) }}</td>
+				<td>{{ percent(@this.total(n)) }}</td>
+				<td>{{ n + 5 - enchant }}</td>
+			</tr>
+			{{/each}}
+		</table>
+	</script>
+	<script type="text/javascript">
+		window.onload = function() {
+			var ractive = new Ractive({
+				target: '#content',
+				template: '#artifact-chances',
+				data: {
+					origin: 'domain',
+					enchant: 0,
+
+					percent(n, decimals = 2) {
+						if(n == undefined)
+							return '';
+
+						const e = 10 ** decimals;
+						return Math.round(n * 100 * e) / e + '%';
+					},
+				},
+				toggleOrigin() {
+					const options = ['domain', 'boss'];
+					let index = options.indexOf(this.get('origin')) + 1;
+					this.set('origin', options[index >= options.length ? 0 : index]);
+				},
+				toggleEnchant() {
+					const options = [0, 1];
+					let index = options.indexOf(this.get('enchant')) + 1;
+					this.set('enchant', options[index >= options.length ? 0 : index]);
+				},
+				roll(desired, initial, total = 9) {
+					if(desired > initial)
+						return undefined;
+
+					let v = 1;
+					for(let i = 0; i < desired; i++)
+						v = v * (initial - i) / (total - i);
+					return v;
+				},
+				obtain(stats) {
+					const r3 = this.roll(stats, 3);
+					const r4 = this.roll(stats, 4);
+					if(r3 == undefined && r4 == undefined)
+						return undefined;
+
+					const m = this.get('origin') == 'domain' ?
+						[4/5, 1/5] : [2/3, 1/3];
+					return (r3 || 0) * m[0] + (r4 || 0) * m[1];
+				},
+				enchant(stats) {
+					const e = this.get('enchant');
+					if(e > 4 - stats)
+						return undefined;
+
+					return (1/4 * stats)**(5 - e);
+				},
+				total(stats) {
+					const o = this.obtain(stats);
+					const e = this.enchant(stats);
+					if(o == undefined || e == undefined)
+						return undefined;
+					return o * e;
+				}
+			});
+		}
+	</script>
+</body>
+</html>
