@@ -7,106 +7,366 @@
 	<meta name="description" content="Genshin Impact various probabilities.">
 	<meta name="author" content="MirrorImage">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
-	<link rel="stylesheet" href="css/avatar-matrix.css">
+	<style>
+		th, td { border: thin solid black; padding: 0.3em 0.5em; }
+		table { width: 100%; table-layout: fixed; }
+		th { background: #ccc; }
+		.display tr:last-child td:last-child { background: hsl(60, 80%, 80%); }
+		.resin input { width: 6em; height: 1.5em; }
+		.tries input { width: 3em; height: 1.5em; }
+		form table tr:last-child td { border-bottom: none; }
+		form table { background: hsl(230, 90%, 90%); }
+		#reset { position: fixed; right: 0; top: 0; }
+		.todo { margin-top: 1em; font-style: italic; }
+	</style>
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
 </head>
 
 <body>
 	<article id="content"></article>
 	<script id="artifact-chances" type="text/ractive">
-		<table>
+		<form>
+			<table>
+				<tr>
+					<td colspan="2">
+						Origin:
+						<label><input type="radio" name="{{ origin }}" value="domain" /> Domain</label>
+						<!-- <label><input type="radio" name="{{ origin }}" value="boss" /> Boss</label> -->
+						<label><input type="radio" name="{{ origin }}" value="strongbox" /> Strongbox</label>
+
+						{{#if origin != 'strongbox'}}
+							<label><input type="checkbox" name="strict" checked="{{ strict }}" /> Set is matter.</label>
+						{{/if}}
+					</td>
+					<td>
+						{{#if origin != 'strongbox'}}
+							<label class="resin">Resin: <input type="number" value="{{ resin }}" /> (≈ {{ duration }})</label>
+						{{else}}
+							<label class="tries">Tries: <input type="number" value="{{ tries }}" /> (artifacts {{ artifacts }})</label>
+						{{/if}}
+					</td>
+					<td>
+						Bonuses after enchant:
+						<label><input type="radio" name="{{ loss }}" value="0" /> {{ @this.maxBonuses(4) }}</label>
+						<label><input type="radio" name="{{ loss }}" value="1" /> {{ @this.maxBonuses(3) }}+</label>
+					</td>
+					<td>
+						Format:
+						<label><input type="radio" name="{{ format }}" value="percent" /> Percent</label>
+						<label><input type="radio" name="{{ format }}" value="fraction" /> Fraction</label>
+					</td>
+				</tr>
+				<tr>
+					<td width="20%"><label><input type="radio" name="{{ slot }}" value="0" /> Flower</label></td>
+					<td width="20%"><label><input type="radio" name="{{ slot }}" value="1" /> Plume</label></td>
+					<td width="20%"><label><input type="radio" name="{{ slot }}" value="2" /> Sands</label></td>
+					<td width="20%"><label><input type="radio" name="{{ slot }}" value="3" /> Goblet</label></td>
+					<td width="20%"><label><input type="radio" name="{{ slot }}" value="4" /> Circlet</label></td>
+				</tr>
+				<tr>
+					<td colspan="5" class="stat">
+						Main stat:
+						{{#if slot == 0}}
+							<label><input type="radio" name="{{ stat }}" value="hp" disabled="disabled" /> HP</label>
+						{{elseif slot == 1}}
+							<label><input type="radio" name="{{ stat }}" value="atk" disabled="disabled" /> ATK</label>
+						{{else}}
+							<label><input type="radio" name="{{ stat }}" value="hp%" /> HP%</label>
+							<label><input type="radio" name="{{ stat }}" value="atk%" /> ATK%</label>
+							<label><input type="radio" name="{{ stat }}" value="def%" /> DEF%</label>
+							{{#if slot == 2}}
+								<label><input type="radio" name="{{ stat }}" value="er" /> Energy Recharge%</label>
+							{{elseif slot == 3}}
+								<label><input type="radio" name="{{ stat }}" value="ed" /> Elemental/Physical Damage</label>
+							{{elseif slot == 4}}
+								<label><input type="radio" name="{{ stat }}" value="cr" /> CRIT Rate%</label>
+								<label><input type="radio" name="{{ stat }}" value="cd" /> CRIT DMG%</label>
+								<label><input type="radio" name="{{ stat }}" value="hb" /> Healing Bonus%</label>
+							{{/if}}
+							<label><input type="radio" name="{{ stat }}" value="em" /> Elemental Mastery</label>
+						{{/if}}
+					</td>
+				</tr>
+				<tr>
+					<td colspan="5" class="stat">
+						Bonus stats ({{ bonus.length }}):
+						{{#{'hp': 'HP', 'atk': 'ATK', 'def': 'DEF', 'hp%': 'HP%', 'atk%': 'ATK%', 'def%': 'DEF%', 'er': 'Energy Recharge%', 'em': 'Elemental Mastery', 'cr': 'CRIT Rate%', 'cd': 'CRIT DMG%'}:name}}
+							{{#if name != stat}}
+								<label><input type="checkbox" value="{{ name }}" checked="{{ hasBonus(name) }}" disabled="{{ mayBonus(name) }}" twoway="false" on-change="setBonus" /> {{.}}</label>&nbsp;
+							{{/if}}
+						{{/each}}
+					</td>
+				</tr>
+			</table>
+			<input id="reset" type="button" value="Reset" on-click="resetData" />
+		</form>
+		<table class="display">
 			<tr>
-				<th colspan="2" rowspan="2">
-					<button name="origin" on-click="@this.toggleOrigin()">Origin: {{ origin == 'domain' ? 'domain' : 'strongbox/boss' }}</button><br />
-					<button name="enchant" on-click="@this.toggleEnchant()">Enchant: {{ enchant == 0 ? 'zero loss' : 'single loss'}}</button>
-				</th>
-				<th colspan="2">Chances to roll</th>
-				<th rowspan="2">Chances to obtain</th>
-				<th rowspan="2">Chances to enchant</th>
-				<th rowspan="2">Chances to obtain & enchant</th>
-				<th rowspan="2">Maximum<br />useful stats</th>
+				<th></th>
+				<th>Chances to obtain</th>
+				<th>Chances to enchant</th>
+				<th>Chances to obtain & enchant</th>
 			</tr>
-			<tr>
-				<th>For 4-stats artifact</th>
-				<th>For 3-stats artifact</th>
-			</tr>
-			<tr>
-				<th rowspan="5">Desired amount of initial useful bonus stats</th>
-			</tr>
-			{{#each [4, 3, 2, 1] as n}}
-			<tr>
-				<th>{{ n }} stats</th>
-				<td>{{ percent(@this.roll(n, 4)) }}</td>
-				<td>{{ percent(@this.roll(n, 3)) }}</td>
-				<td>{{ percent(@this.obtain(n)) }}</td>
-				<td>{{ percent(@this.enchant(n)) }}</td>
-				<td>{{ percent(@this.total(n)) }}</td>
-				<td>{{ n + 5 - enchant }}</td>
-			</tr>
-			{{/each}}
+			{{#if stat && bonus.length }}
+				<tr>
+					<th>For 4-stats artifact</th>
+					<td>{{ @this.format(obtain4) }}</td>
+					<td>{{ @this.format(enchant4) }}</td>
+					<td>{{ @this.format(obtain4 * enchant4) }}</td>
+				</tr>
+				<tr>
+					<th>For 3-stats artifact</th>
+					<td>{{ @this.format(obtain3) }}</td>
+					<td>{{ @this.format(enchant3) }}</td>
+					<td>{{ @this.format(obtain3 * enchant3) }}</td>
+				</tr>
+				<tr>
+					<th>Summary</th>
+					<td>{{ @this.format(obtain4 + obtain3) }}</td>
+					<td></td>
+					<td>{{ @this.format((obtain4 * enchant4 + obtain3 * enchant3)) }}</td>
+				</tr>
+			{{/if}}
 		</table>
+
+		{{#if @this.constructor.DEBUG}}
+			<ol class="todo">
+				<li>TODO: Configurable world level.</li>
+				<li>TODO: Weekly and normal boss origin.</li>
+				<li>TODO: Normalize greather than 1 fractions.</li>
+			</ol>
+		{{/if}}
 	</script>
 	<script type="text/javascript">
 		window.onload = function() {
+			const _default = {
+				origin: 'domain',
+				strict: true,
+				loss: 0,
+				format: 'percent',
+				resin: 40,
+				tries: 1,
+				slot: 0,
+				stat: 'hp',
+				bonus: []
+			};
+
+			const weights = {
+				stat: {
+					'2': { 'hp%': 0.2668, 'atk%': 0.2666, 'def%': 0.2666, 'er': 0.1, 'em': 0.1 },
+					'3': { 'hp%': 0.19175, 'atk%': 0.19175, 'def%': 0.1915, 'ed': 0.05, 'em': 0.025 },
+					'4': { 'hp%': 0.22, 'atk%': 0.22, 'def%': 0.22, 'cr': 0.1, 'cd': 0.1, 'hb': 0.1, 'em': 0.04 },
+				},
+				bonus: {
+					'0': {'hp': 0, 'atk': 0.1579, 'def': 0.1579, 'hp%': 0.1053, 'atk%': 0.1053, 'def%': 0.1053, 'er': 0.1053, 'em': 0.1053, 'cr': 0.0789, 'cd': 0.0789},
+					'1': {'hp': 0.1579, 'atk': 0, 'def': 0.1579, 'hp%': 0.1053, 'atk%': 0.1053, 'def%': 0.1053, 'er': 0.1053, 'em': 0.1053, 'cr': 0.0789, 'cd': 0.0789},
+					'2': {'hp': 0.15, 'atk': 0.15, 'def': 0.15, 'hp%': 0.1, 'atk%': 0.1, 'def%': 0.1, 'er': 0.1, 'em': 0.1, 'cr': 0.075, 'cd': 0.075},
+					'3': {
+						'ed': {'hp': 0.1364, 'atk': 0.1364, 'def': 0.1364, 'hp%': 0.0909, 'atk%': 0.0909, 'def%': 0.0909, 'er': 0.0909, 'em': 0.0909, 'cr': 0.0682, 'cd': 0.0682},
+						'*': {'hp': 0.15, 'atk': 0.15, 'def': 0.15, 'hp%': 0.1, 'atk%': 0.1, 'def%': 0.1, 'er': 0.1, 'em': 0.1, 'cr': 0.075, 'cd': 0.075},
+					},
+					'4': {
+						'cr_cd': {'hp': 0.1463, 'atk': 0.1463, 'def': 0.1463, 'hp%': 0.0976, 'atk%': 0.0976, 'def%': 0.0976, 'er': 0.0976, 'em': 0.0976, 'cr': 0.0732, 'cd': 0.0732},
+						'hb': {'hp': 0.1364, 'atk': 0.1364, 'def': 0.1364, 'hp%': 0.0909, 'atk%': 0.0909, 'def%': 0.0909, 'er': 0.0909, 'em': 0.0909, 'cr': 0.0682, 'cd': 0.0682},
+						'*': {'hp': 0.15, 'atk': 0.15, 'def': 0.15, 'hp%': 0.1, 'atk%': 0.1, 'def%': 0.1, 'er': 0.1, 'em': 0.1, 'cr': 0.075, 'cd': 0.075},
+					},
+				},
+			};
+
 			var ractive = new Ractive({
 				target: '#content',
 				template: '#artifact-chances',
-				data: {
-					origin: 'domain',
-					enchant: 0,
-
-					percent(n, decimals = 2) {
-						if(n == undefined)
-							return '';
-
-						const e = 10 ** decimals;
-						return Math.round(n * 100 * e) / e + '%';
+				data: Object.assign(JSON.parse(localStorage.getItem('controls')) || _default, {
+					hasBonus(stat) {
+						return this.get('bonus').indexOf(stat) >= 0;
 					},
+					mayBonus(stat) {
+						const bonus = this.get('bonus');
+						return bonus.length >= 4 && bonus.indexOf(stat) < 0;
+					},
+				}),
+				computed: {
+					obtain4() {
+						return this.obtain(4);
+					},
+					obtain3() {
+						return this.obtain(3);
+					},
+					enchant4() {
+						return this.enchant(4);
+					},
+					enchant3() {
+						return this.enchant(3);
+					},
+					dropChance() {
+						const resin = this.get('resin');
+						switch(this.get('origin')) {
+							case 'domain': return resin / 20 * 1.065;
+						}
+					},
+					duration() {
+						return moment.duration((this.get('resin') || 0) * 8, 'minutes').humanize({m: 60, h: 24, d: 7});
+					},
+					artifacts() {
+						const tries = this.get('tries');
+						return tries ? tries * 2 + 1 : 0;
+					}
 				},
-				toggleOrigin() {
-					const options = ['domain', 'boss'];
-					let index = options.indexOf(this.get('origin')) + 1;
-					this.set('origin', options[index >= options.length ? 0 : index]);
+				statWeights(slot) {
+					return slot > 1 ? weights.stat[slot.toString()] : null;
 				},
-				toggleEnchant() {
-					const options = [0, 1];
-					let index = options.indexOf(this.get('enchant')) + 1;
-					this.set('enchant', options[index >= options.length ? 0 : index]);
+				bonusWeights(slot, stat) {
+					let group = '*';
+					let result = null;
+					switch(slot.toString()) {
+						case '4':
+							if(stat == 'cr' || stat == 'cd')
+								group = 'cr_cd';
+							else if(stat = 'hb')
+								group = 'hb';
+							result = weights.bonus[slot.toString()][group];
+						break;
+						case '3':
+							group = stat == 'ed' ? 'ed' : '*';
+							result = weights.bonus[slot.toString()][group];
+						break;
+						default: result = weights.bonus[slot.toString()];
+					}
+					return _.omit(result, stat);
 				},
-				roll(desired, initial, total = 9) {
-					if(desired > initial)
-						return undefined;
+				checkWeights(slot, weights, bonus) {
+					if(slot < 2 && !bonus)
+						return;
+					let w = Object.values(weights).reduce((a, b) => a + b, 0);
+					if(slot == 3 && !bonus)
+						w += 0.05 * 7;
+					console.assert(Math.round(w * 1000) == 1000, (bonus ? 'Bonus' : 'Stat') + ' weights not complete.', w, weights);
+				},
+				maxBonuses(initial) {
+					return this.get('bonus').length + initial + 1;
+				},
+				expCost() {
+					switch(this.get('origin')) {
+						case 'domain': return 20 / (1.065 * 3780 + 2.485 * 2520 + 3.55 * 1260);
+					}
+				},
+				obtain(initial) {
+					const origin = this.get('origin');
+					const strict = this.get('strict');
+					const slot = this.get('slot');
+					const stat = this.get('stat');
+					const loss = parseInt(this.get('loss'));
+					const bonuses = ((v, f) => f(v))(this.get('bonus'), Ractive.DEBUG ? _.shuffle : _.identity); // Results should still same no matter of order.
+					const sWeights = this.statWeights(slot);
+					const bWeights = this.bonusWeights(slot, stat);
+					let chance = 1;
 
-					let v = 1;
-					for(let i = 0; i < desired; i++)
-						v = v * (initial - i) / (total - i);
-					return v;
-				},
-				obtain(stats) {
-					const r3 = this.roll(stats, 3);
-					const r4 = this.roll(stats, 4);
-					if(r3 == undefined && r4 == undefined)
-						return undefined;
+					// Type chance.
+					if(origin != 'strongbox' && strict)
+						chance /= 2;
 
-					const m = this.get('origin') == 'domain' ?
-						[4/5, 1/5] : [2/3, 1/3];
-					return (r3 || 0) * m[0] + (r4 || 0) * m[1];
-				},
-				enchant(stats) {
-					const e = this.get('enchant');
-					if(e > 4 - stats)
-						return undefined;
+					// Slot chance.
+					chance /= 5;
 
-					return (1/4 * stats)**(5 - e);
+					// Stat chance.
+					if(slot > 1)
+						chance *= sWeights[stat];
+
+					// Bonus count chance.
+					if(initial == 4)
+						chance *= origin == 'domain' ? 1/5 : 1/3;
+					else
+						chance *= origin == 'domain' ? 4/5 : 2/3;
+
+					// Bonus chances.
+					if(bonuses.length > (initial + loss))
+						return 0;
+
+					for(let i = 0; i < bonuses.length; i++) {
+						chance *= bWeights[bonuses[i]] * (Math.min(initial + loss, 4) - i);
+					}
+
+					// Resin/tries multiplicator.
+					if(origin != 'strongbox')
+						chance *= this.get('dropChance');
+					else
+						chance *= this.get('tries');
+
+					if(Ractive.DEBUG) {
+						this.checkWeights(slot, sWeights, false);
+						this.checkWeights(slot, bWeights, true);
+						console.log(initial, parseInt(slot), stat, bonuses, sWeights, bWeights);
+					}
+
+					return chance;
 				},
-				total(stats) {
-					const o = this.obtain(stats);
-					const e = this.enchant(stats);
-					if(o == undefined || e == undefined)
-						return undefined;
-					return o * e;
+				enchant(initial) {
+					const loss = parseInt(this.get('loss'));
+					const bonuses = this.get('bonus').length;
+					if(bonuses <= (initial + loss))
+						return (1/4 * bonuses)**(5 - loss);
+					else
+						return 0;
+				},
+				format(n) {
+					return this.get('format') == 'percent' ?
+						this.percent(n, 2) : this.fraction(n);
+				},
+				percent(n, decimals = 2) {
+					if(n == undefined)
+						return '';
+
+					const e = 10 ** decimals;
+					return Math.round(n * 100 * e) / e + '%';
+				},
+				fraction(n) {
+					if(!n)
+						return '';
+					else if (n == 1)
+						return 1;
+
+					const f = 1/n;
+					if(f % 1 != 0)
+						return '≈ 1/' + (f < 100 ? Math.round(f * 100) / 100 : Math.round(f));
+					else
+						return '1/' + f;
+				},
+				oncomplete() {
+					this.observe(Object.keys(_default).join(' '), function(value, old, path) {
+						let data = _.pick(this.get({virtual: false}), Object.keys(_default));
+						localStorage.setItem('controls', JSON.stringify(data));
+					}, {
+						init: false,
+					});
 				}
+			});
+			ractive.on('setBonus', function(event) {
+				let bonus = this.get('bonus');
+				if(event.node.checked)
+					bonus.push(event.node.value);
+				else
+					bonus = bonus.filter(v => v != event.node.value);
+				this.set('bonus', bonus);
+			});
+			ractive.on('resetData', function() {
+				this.set(_default);
+			});
+			ractive.observe('slot', function(value, old) {
+				if(value > 1) {
+					const weights = Object.keys(this.statWeights(value));
+					if(weights.indexOf(this.get('stat')) < 0)
+						this.set('stat', null)
+				} else if(value == 1)
+					this.set('stat', 'atk');
+				else if(value == 0)
+					this.set('stat', 'hp');
+			});
+			ractive.observe('stat', function(value, old) {
+				let bonus = this.get('bonus');
+				if(bonus.indexOf(value) >= 0)
+					this.set('bonus', bonus.filter(v => v != value));
 			});
 		}
 	</script>
