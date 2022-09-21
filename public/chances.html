@@ -11,11 +11,18 @@
 		th, td { border: thin solid black; padding: 0.3em 0.5em; }
 		table { width: 100%; table-layout: fixed; }
 		th { background: #ccc; }
-		.display tr:last-child td:last-child { background: hsl(60, 80%, 80%); }
-		.resin input { width: 6em; height: 1.5em; }
-		.tries input { width: 3em; height: 1.5em; }
-		form table tr:last-child td { border-bottom: none; }
-		form table { background: hsl(230, 90%, 90%); }
+		tfoot th { font-weight: normal; }
+		tfoot td { font-style: italic; }
+		input[type="text"], input[type="number"] { height: 1.5em; }
+		.panel { display: inline-block; margin: 0.15em 0; }
+
+		.display tr:nth-child(4) td:last-child { background: hsl(60, 80%, 80%); }
+		.resin input[type="number"] { width: 6em; }
+		.tries input { width: 4em; }
+		.time input[type="text"] { width: 3ch; }
+		.time label:nth-child(2) input { width: 4ch; }
+		tr:first-child td, tr:first-child th { border-top: none; }
+		form table { background: hsl(230, 90%, 90%); border-top: thin solid black; }
 		#reset { position: fixed; right: 0; top: 0; }
 		.todo { margin-top: 1em; font-style: italic; }
 	</style>
@@ -30,27 +37,42 @@
 		<form>
 			<table>
 				<tr>
-					<td colspan="2">
-						Origin:
-						<label><input type="radio" name="{{ origin }}" value="domain" /> Domain</label>
-						<!-- <label><input type="radio" name="{{ origin }}" value="boss" /> Boss</label> -->
-						<label><input type="radio" name="{{ origin }}" value="strongbox" /> Strongbox</label>
+					<td>
+						<div class="panel">
+							Origin:
+							<label><input type="radio" name="{{ origin }}" value="domain" /> Domain</label>
+							<!-- <label><input type="radio" name="{{ origin }}" value="boss" /> Boss</label> -->
+							<label><input type="radio" name="{{ origin }}" value="strongbox" /> Strongbox</label>
+						</div>
 
 						{{#if origin != 'strongbox'}}
-							<label><input type="checkbox" name="strict" checked="{{ strict }}" /> Set is matter.</label>
-						{{/if}}
-					</td>
-					<td>
-						{{#if origin != 'strongbox'}}
-							<label class="resin">Resin: <input type="number" value="{{ resin }}" /> (≈ {{ duration }})</label>
-						{{else}}
-							<label class="tries">Tries: <input type="number" value="{{ tries }}" /> (artifacts {{ artifacts }})</label>
+							<div class="panel">
+								<label class="mt-sm"><input type="checkbox" name="strict" checked="{{ anySet }}" /> Any set type</label>
+							</div>
 						{{/if}}
 					</td>
 					<td>
 						Bonuses after enchant:
 						<label><input type="radio" name="{{ loss }}" value="0" /> {{ @this.maxBonuses(4) }}</label>
 						<label><input type="radio" name="{{ loss }}" value="1" /> {{ @this.maxBonuses(3) }}+</label>
+					</td>
+					<td colspan="2">
+						{{#if origin != 'strongbox'}}
+							<div class="panel resin">
+								<label><input type="radio" name="{{ multiplier.type }}" value="resin" /> Resin:</label>
+								<input type="number" value="{{ multiplier.resin }}" step="20" disabled="{{ multiplier.type != 'resin' }}" on-change="setResin" />
+							</div>
+							<div class="panel time">
+								<label><input type="radio" name="{{ multiplier.type }}" value="time" /> Time:</label>
+								<label><input type="text" value="{{ multiplier.days }}" disabled="{{ multiplier.type != 'time' }}" on-change="setTime" /> days</label>
+								<label><input type="text" value="{{ multiplier.months }}" disabled="{{ multiplier.type != 'time' }}" on-change="setTime" /> months</label>
+								<label><input type="text" value="{{ multiplier.years }}" disabled="{{ multiplier.type != 'time' }}" on-change="setTime" /> years</label>
+							</div>
+						{{else}}
+							<div class="panel tries">
+								<label>Artifacts: <input type="number" value="{{ artifacts }}" /> ({{ tries }} tries)</label>
+							</div>
+						{{/if}}
 					</td>
 					<td>
 						Format:
@@ -102,14 +124,9 @@
 			</table>
 			<input id="reset" type="button" value="Reset" on-click="resetData" />
 		</form>
-		<table class="display">
-			<tr>
-				<th></th>
-				<th>Chances to obtain</th>
-				<th>Chances to enchant</th>
-				<th>Chances to obtain & enchant</th>
-			</tr>
-			{{#if stat && bonus.length }}
+		{{#if stat && bonus.length }}
+			<table class="display">
+				<tr><th></th><th>Chances to obtain</th><th>Chances to enchant</th><th>Chances to obtain & enchant</th></tr>
 				<tr>
 					<th>For 4-stats artifact</th>
 					<td>{{ @this.format(obtain4) }}</td>
@@ -128,14 +145,26 @@
 					<td></td>
 					<td>{{ @this.format((obtain4 * enchant4 + obtain3 * enchant3)) }}</td>
 				</tr>
-			{{/if}}
-		</table>
+				{{#if origin != 'strongbox'}}
+					<tfoot>
+						<tr>
+							<th>Total artifacts farmed</th>
+							<td colspan="3">{{ @this.format(dropChance) }} ({{ Math.max(Math.floor((dropChance - 1) / 2), 0) }} strongbox rolls)</td>
+						</tr>
+						<tr>
+							<th>Fodder experience</th>
+							<td colspan="3">{{ Math.round(@this.expAmount(false)) }} ({{ @this.format(@this.enchantable(@this.expAmount(false))) }} enchantable artifacts)</td>
+						</tr>
+					</tfoot>
+				{{/if}}
+			</table>
+
+		{{/if}}
 
 		{{#if @this.constructor.DEBUG}}
 			<ol class="todo">
 				<li>TODO: Configurable world level.</li>
 				<li>TODO: Weekly and normal boss origin.</li>
-				<li>TODO: Normalize greather than 1 fractions.</li>
 			</ol>
 		{{/if}}
 	</script>
@@ -146,8 +175,14 @@
 				strict: true,
 				loss: 0,
 				format: 'percent',
-				resin: 40,
-				tries: 1,
+				multiplier: {
+					type: 'resin',
+					resin: 40,
+					days: 0,
+					months: 0,
+					years: 0,
+				},
+				artifacts: 3,
 				slot: 0,
 				stat: 'hp',
 				bonus: []
@@ -201,17 +236,21 @@
 						return this.enchant(3);
 					},
 					dropChance() {
-						const resin = this.get('resin');
+						const resin = this.get('multiplier.resin');
 						switch(this.get('origin')) {
 							case 'domain': return resin / 20 * 1.065;
 						}
 					},
 					duration() {
-						return moment.duration((this.get('resin') || 0) * 8, 'minutes').humanize({m: 60, h: 24, d: 7});
+						return moment.duration((this.get('multiplier.resin') || 0) * 8, 'minutes').humanize({m: 60, h: 24, d: 7});
 					},
-					artifacts() {
-						const tries = this.get('tries');
-						return tries ? tries * 2 + 1 : 0;
+					tries() {
+						const artifacts = this.get('artifacts');
+						return artifacts ? Math.floor((artifacts - 1) / 2) : 0;
+					},
+					anySet: {
+						get() { return !this.get('strict'); },
+						set(value) { this.set('strict', !value); },
 					}
 				},
 				statWeights(slot) {
@@ -247,10 +286,13 @@
 				maxBonuses(initial) {
 					return this.get('bonus').length + initial + 1;
 				},
-				expCost() {
+				expAmount(star5 = true, star4 = true, star3 = true) {
 					switch(this.get('origin')) {
-						case 'domain': return 20 / (1.065 * 3780 + 2.485 * 2520 + 3.55 * 1260);
+						case 'domain': return (1.065 * 3780 * star5 + 2.485 * 2520 * star4 + 3.55 * 1260 * star3) / 20 * this.get('multiplier.resin');
 					}
+				},
+				enchantable(exp) {
+					return (exp * 0.9 + exp * 0.01 * 5 + exp * 0.09 * 2) / 270475;
 				},
 				obtain(initial) {
 					const origin = this.get('origin');
@@ -321,17 +363,19 @@
 					const e = 10 ** decimals;
 					return Math.round(n * 100 * e) / e + '%';
 				},
+				decimals(n, d = 2) {
+					return Math.round(n * 10**d) / 10**d;
+				},
 				fraction(n) {
 					if(!n)
 						return '';
-					else if (n == 1)
-						return 1;
 
-					const f = 1/n;
-					if(f % 1 != 0)
-						return '≈ 1/' + (f < 100 ? Math.round(f * 100) / 100 : Math.round(f));
-					else
-						return '1/' + f;
+					let v = n >= 1 ? n : 1/n;
+					if(v % 1 != 0) {
+						v = this.decimals(v, v < 100 ? 2 : 0);
+						return '≈ ' + (n >= 1 ? v : '1/' + v);
+					} else
+						return n >= 1 ? v : '1/' + v;
 				},
 				oncomplete() {
 					this.observe(Object.keys(_default).join(' '), function(value, old, path) {
@@ -349,6 +393,19 @@
 				else
 					bonus = bonus.filter(v => v != event.node.value);
 				this.set('bonus', bonus);
+			});
+			ractive.on('setResin', function(event) {
+				const resin = parseInt(event.node.value);
+				const day = 24 * 60 / 8;
+				const month = day * 30;
+				const year = day * 365;
+				this.set('multiplier.years', Math.floor(resin / year));
+				this.set('multiplier.months', Math.floor(resin % year / month));
+				this.set('multiplier.days', Math.round(resin % year % month / day));
+			});
+			ractive.on('setTime', function(event) {
+				let days = parseInt(this.get('multiplier.days')) + parseInt(this.get('multiplier.months')) * 30 + parseInt(this.get('multiplier.years') * 365);
+				this.set('multiplier.resin', days * 24 * 60 / 8);
 			});
 			ractive.on('resetData', function() {
 				this.set(_default);
