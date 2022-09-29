@@ -180,7 +180,7 @@ function createArtifacts(target, template, storage) {
 			console.assert(Math.round(w * 1000) == 1000, (bonus ? 'Bonus' : 'Stat') + ' weights not complete.', w, weights);
 		},
 		maxBonuses(initial) {
-			return this.get('bonus').length + initial + 1;
+			return this.get('bonus').length + 5 - (4 - initial);
 		},
 		expAmount(star5 = true, star4 = true, star3 = true) {
 			switch(this.get('origin')) {
@@ -243,10 +243,7 @@ function createArtifacts(target, template, storage) {
 		enchant(initial) {
 			const loss = parseInt(this.get('loss'));
 			const bonuses = this.get('bonus').length;
-			if(bonuses <= (initial + loss))
-				return (1/4 * bonuses)**(5 - loss);
-			else
-				return 0;
+			return loss < 1 && initial < 4 ? 0 : (1/4 * bonuses)**(5 - loss);
 		},
 		format(n) {
 			switch(this.get('format')) {
@@ -291,6 +288,9 @@ function createArtifacts(target, template, storage) {
 			bonus.push(event.node.value);
 		else
 			bonus = bonus.filter(v => v != event.node.value);
+
+		if(bonus.length > 3 && this.get('loss') > 1)
+			this.set('loss', 1);
 		this.set('bonus', bonus);
 	});
 	ractive.on('setResin', function(event) {

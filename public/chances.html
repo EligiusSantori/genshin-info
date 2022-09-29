@@ -55,8 +55,10 @@
 					<td>
 						Bonuses after enchant:
 						<label><input type="radio" name="{{ loss }}" value="0" /> {{ @this.maxBonuses(4) }}</label>
-						<label><input type="radio" name="{{ loss }}" value="1" /> {{ @this.maxBonuses(4) - 1 }}+</label>
-						<label><input type="radio" name="{{ loss }}" value="2" /> {{ @this.maxBonuses(4) - 2 }}+</label>
+						<label><input type="radio" name="{{ loss }}" value="1" /> {{ @this.maxBonuses(3) }}+</label>
+						{{#if bonus.length < 4}}
+							<label><input type="radio" name="{{ loss }}" value="2" /> {{ @this.maxBonuses(3) - 1 }}+</label>
+						{{/if}}
 					</td>
 					<td colspan="2">
 						{{#if origin != 'strongbox'}}
