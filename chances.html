@@ -27,6 +27,7 @@
 		.todo { margin-top: 1em; font-style: italic; }
 	</style>
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/mathjs@11.2.1/dist/math.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
 	<!-- <script>MathJax = { loader: {load: ['input/asciimath', 'output/chtml']} }</script>
 	<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/startup.js"></script> -->
@@ -155,7 +156,7 @@
 				</tr>
 				<tr>
 					<th>Formula</th>
-					<td colspan="3">{{ summary.toText() }}</td>
+					<td colspan="3">{{{ summary.toHtml() }}}</td>
 				</tr>
 				{{#if origin != 'strongbox'}}
 					<tfoot>
@@ -182,6 +183,7 @@
 		{{/if}}
 	</script>
 	<script type="text/javascript">
+		Ractive.DEBUG = false;
 		window.onload = function() { createArtifacts('#content', '#artifact-chances', 'controls'); }
 	</script>
 </body>
