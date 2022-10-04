@@ -1,23 +1,23 @@
 :root {
-	--el-size: 90px;
+	--el-size: 95px;
 	--grade4-color: rgba(154,112,175,1);
 	--grade5-color: rgba(193,117,33,1);
 }
-table { border: none 0; border-collapse: collapse; width: 100%; }
+table { border: none 0; border-collapse: collapse; width: 100%; /*table-layout: fixed;*/ }
 caption { color: initial; font-size: xx-large; caption-side: top; padding: 0; }
-th, td { border: 3px solid black; text-align: center; }
-td { padding: 0.5em 0; line-height: 0; }
-th { padding: 0.5em 0; }
+th, td { border: medium solid black; text-align: center; font-size: 0; line-height: 0; }
+th:first-child { width: 95px; }
+td { padding: 0.3rem 0 0 0.3rem; }
 th img { max-height: var(--el-size); }
 .character {
 	display: inline-block;
 	width: var(--el-size);
 	height: var(--el-size);
 	border-radius: 50%;
-	border: 3px solid black;
+	border: thick solid black;
 	background: center no-repeat;
 	background-size: 100%;
-	margin: 5px;
+	margin: 0 0.3rem 0.3rem 0;
 }
 .character[data-grade="4"] { background-color: var(--grade4-color); border-color: var(--grade4-color); }
 .character[data-grade="5"] { background-color: var(--grade5-color); border-color: var(--grade5-color); }

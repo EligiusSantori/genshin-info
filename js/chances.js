@@ -38,81 +38,12 @@ const weights = {
 	},
 };
 
-class Formula {
-	constructor(name) {
-		this.name = name || null;
-		this.data = [];
-	}
-
-	add(value) {
-		this.data.push('+', value);
-		return this;
-	}
-	sub(value) {
-		this.data.push('-', value);
-		return this;
-	}
-	mul(value) {
-		this.data.push('×', value);
-		return this;
-	}
-	div(value) {
-		this.data.push('/', value);
-		return this;
-	}
-	pow(value) {
-		this.data.push('**', value);
-	}
-
-	evaluate() { // TODO operator precedence
-		if(!this.data.length)
-			return '';
-		let value = 0;
-		for(let i = 0, v = 0; i < this.data.length; i += 2) {
-			v = this.data[i + 1];
-			if(v instanceof Formula)
-				v = v.evaluate();
-			switch(this.data[i]) { // _.add _.subtract _.multiply _.divide
-				case '+': value += v; break;
-				case '-': value -= v; break;
-				case '×': value *= v; break;
-				case '/': value /= v; break;
-				case '**': value = value ** v; break;
-			}
-		}
-		return value;
-	}
-	toText() { // TODO groups
-		if(!this.data.length)
-			return '';
-		if(typeof this.data[0] == 'string')
-			this.fix();
-		return this.data.map(t => t instanceof Formula ? '(' + t.toText() + ')' : t).join(' ');
-	}
-	toHtml() {
-
-	}
-	fix() {
-		switch(this.data[0]) {
-			case '+': this.data.shift(); break;
-			case '-':
-				if(this.data[1] instanceof Formula)
-					this.data.unshift(0);
-				else {
-				this.data.shift();
-				this.data[0] = -this.data[0];
-				}
-			break;
-			default: this.data.unshift(0);
-		}
-	}
-}
-
 function createArtifacts(target, template, storage) {
 	let ractive = new Ractive({
 		target: target,
 		template: template,
 		data: Object.assign(JSON.parse(localStorage.getItem(storage)) || _default, {
+			cloneDeep: _.cloneDeep,
 			hasBonus(stat) {
 				return this.get('bonus').indexOf(stat) >= 0;
 			},
@@ -128,6 +59,19 @@ function createArtifacts(target, template, storage) {
 			obtain3() {
 				return this.obtain(3);
 			},
+			obtainAll() {
+				const obtain4 = this.get('obtain4');
+				const obtain3 = this.get('obtain3');
+				return formula().add(formula().add(obtain4).add(obtain3));
+			},
+			summary() {
+				const obtain4 = _.cloneDeep(this.get('obtain4'));
+				const obtain3 = _.cloneDeep(this.get('obtain3'));
+				const enchant4 = this.get('enchant4');
+				const enchant3 = this.get('enchant3');
+				const scale = this.get('scale');
+				return formula().add(obtain4.mul(enchant4).concat(obtain3.mul(enchant3))).mul(scale);
+			},
 			enchant4() {
 				return this.enchant(4);
 			},
@@ -137,12 +81,19 @@ function createArtifacts(target, template, storage) {
 			dropChance() {
 				const resin = this.get('multiplier.resin');
 				switch(this.get('origin')) {
-					case 'domain': return resin / 20 * 1.065;
+					case 'domain': return formula().add(resin).div(20).mul(1.065);
 				}
 			},
 			tries() {
 				const artifacts = this.get('artifacts');
-				return artifacts ? Math.floor((artifacts - 1) / 2) : 0;
+				return formula().add(formula().add(artifacts).sub(1)).div(2).floor();
+				return artifacts ? formula(f => f.floor(formula(f => f.add(formula(f => f.add(artifacts).sub(1))).div(2)))) : formula(f => f.add(0));
+			},
+			scale() { // Resin/tries multiplier.
+				if(this.get('origin') != 'strongbox')
+					return this.get('dropChance');
+				else
+					return this.get('tries');
 			},
 			anySet: {
 				get() { return !this.get('strict'); },
@@ -199,51 +150,46 @@ function createArtifacts(target, template, storage) {
 			const bonuses = ((v, f) => f(v))(this.get('bonus'), Ractive.DEBUG ? _.shuffle : _.identity); // Results should still same no matter of order.
 			const sWeights = this.statWeights(slot);
 			const bWeights = this.bonusWeights(slot, stat);
-			let chance = 1;
+
+			let f = formula();
+			f.add(1);
 
 			// Type chance.
 			if(origin != 'strongbox' && strict)
-				chance /= 2;
+				f.div(2);
 
 			// Slot chance.
-			chance /= 5;
+			f.div(5);
 
 			// Stat chance.
 			if(slot > 1)
-				chance *= sWeights[stat];
+				f.mul(sWeights[stat]);
 
 			// Bonus count chance.
 			if(initial == 4)
-				chance *= origin == 'domain' ? 1/5 : 1/3;
+				f.mul(origin == 'domain' ? formula(f => f.add(1).div(5)) : formula(f => f.add(1).div(3)));
 			else
-				chance *= origin == 'domain' ? 4/5 : 2/3;
+				f.mul(origin == 'domain' ? formula(f => f.add(4).div(5)) : formula(f => f.add(2).div(3)));
 
 			// Bonus chances.
-			if(bonuses.length > (initial + loss))
-				return 0;
+			if(bonuses.length > (initial + loss) || bonuses.length < 1)
+				return new Formula();
 
-			for(let i = 0; i < bonuses.length; i++) {
-				chance *= bWeights[bonuses[i]] * (Math.min(initial + loss, 4) - i);
-			}
-
-			// Resin/tries multiplicator.
-			if(origin != 'strongbox')
-				chance *= this.get('dropChance');
-			else
-				chance *= this.get('tries');
+			for(let i = 0; i < bonuses.length; i++)
+				f.mul(formula(f => f.add(bWeights[bonuses[i]]).mul(Math.min(initial + loss, 4) - i)));
 
 			if(Ractive.DEBUG) {
 				this.checkWeights(slot, sWeights, false);
 				this.checkWeights(slot, bWeights, true);
 				console.log(initial, parseInt(slot), stat, bonuses, sWeights, bWeights);
 			}
-
-			return chance;
+			return f;
 		},
 		enchant(initial) {
 			const loss = parseInt(this.get('loss'));
 			const bonuses = this.get('bonus').length;
-			return loss < 1 && initial < 4 ? 0 : (1/4 * bonuses)**(5 - loss);
+			return loss < 1 && initial < 4 ? formula() : //(1/4 * bonuses)**(5 - loss);
+				formula().add(formula().add(formula().add(1).div(4)).mul(bonuses)).pow(5 - loss);
 		},
 		format(n) {
 			switch(this.get('format')) {
