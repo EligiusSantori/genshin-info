@@ -28,6 +28,9 @@
 	</style>
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
+	<!-- <script>MathJax = { loader: {load: ['input/asciimath', 'output/chtml']} }</script>
+	<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/startup.js"></script> -->
+	<script src="js/formula.js"></script>
 	<script defer="defer" src="js/chances.js"></script>
 </head>
 
@@ -74,7 +77,7 @@
 							</div>
 						{{else}}
 							<div class="panel tries">
-								<label>Artifacts: <input type="number" value="{{ artifacts }}" /> ({{ tries }} tries)</label>
+								<label>Artifacts: <input type="number" value="{{ artifacts }}" /> ({{ tries.evaluate() }} tries)</label>
 							</div>
 						{{/if}}
 					</td>
@@ -134,27 +137,31 @@
 				<tr><th></th><th>Chances to obtain</th><th>Chances to enchant</th><th>Chances to obtain & enchant</th></tr>
 				<tr>
 					<th>For 4-stats artifact</th>
-					<td>{{ @this.format(obtain4) }}</td>
-					<td>{{ @this.format(enchant4) }}</td>
-					<td>{{ @this.format(obtain4 * enchant4) }}</td>
+					<td>{{ @this.format(cloneDeep(obtain4).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(enchant4.evaluate()) }}</td>
+					<td>{{ @this.format(cloneDeep(obtain4).mul(enchant4).mul(scale).evaluate()) }}</td>
 				</tr>
 				<tr>
 					<th>For 3-stats artifact</th>
-					<td>{{ @this.format(obtain3) }}</td>
-					<td>{{ @this.format(enchant3) }}</td>
-					<td>{{ @this.format(obtain3 * enchant3) }}</td>
+					<td>{{ @this.format(cloneDeep(obtain3).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(enchant3.evaluate()) }}</td>
+					<td>{{ @this.format(cloneDeep(obtain3).mul(enchant3).mul(scale).evaluate()) }}</td>
 				</tr>
 				<tr>
 					<th>Summary</th>
-					<td>{{ @this.format(obtain4 + obtain3) }}</td>
+					<td>{{ @this.format(cloneDeep(obtainAll).mul(scale).evaluate()) }}</td>
 					<td></td>
-					<td>{{ @this.format((obtain4 * enchant4 + obtain3 * enchant3)) }}</td>
+					<td>{{ @this.format(summary.evaluate()) }}</td>
+				</tr>
+				<tr>
+					<th>Formula</th>
+					<td colspan="3">{{ summary.toText() }}</td>
 				</tr>
 				{{#if origin != 'strongbox'}}
 					<tfoot>
 						<tr>
 							<th>Total artifacts farmed</th>
-							<td colspan="3">{{ @this.format(dropChance) }} ({{ Math.max(Math.floor((dropChance - 1) / 2), 0) }} strongbox rolls)</td>
+							<td colspan="3">{{ @this.format(dropChance.evaluate()) }} ({{ Math.max(Math.floor((dropChance.evaluate() - 1) / 2), 0) }} strongbox rolls)</td>
 						</tr>
 						<tr>
 							<th>Fodder experience</th>
@@ -170,7 +177,7 @@
 			<ol class="todo">
 				<li>TODO: Configurable world level.</li>
 				<li>TODO: Weekly and normal boss origin.</li>
-				<li>TODO: Display full formula.</li>
+				<li>TODO: Render formula by MathJax.</li>
 			</ol>
 		{{/if}}
 	</script>

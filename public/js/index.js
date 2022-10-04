@@ -46,8 +46,10 @@ var db = {
 		{name:"Klee", grade: 5, element:"Pyro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/kleepng.png"},
 		{name:"Kokomi", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Inazuma", image: "images/zz1627420866kokomipng.png"},
 		{name:"Kuki", grade: 4, element:"Electro", weapon:"Sword", gender:"Female", city:"Inazuma", image: "images/zz1650057785shinobupng.png"},
+		{name:"Layla", grade: 4, element:"Cryo", weapon:"Sword", gender:"Female", city:"Sumeru", image: "images/zzzzz-1664484004laylapng.png"},
 		{name:"Lisa", grade: 4, element:"Electro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/lisapng.png"},
 		{name:"Mona", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/monapng.png"},
+		{name:"Nahida", grade: 5, element:"Dendro", weapon:"Catalyst", gender:"Female", city:"Sumeru", image: "images/zzzzz-1664483983nahidapng.png"},
 		{name:"Nilou", grade: 5, element:"Hydro", weapon:"Sword", gender:"Female", city:"Sumeru", image: "images/zzzzz-1661471050niloupng.png"},
 		{name:"Ningguang", grade: 4, element:"Geo", weapon:"Catalyst", gender:"Female", city:"Liyue", image: "images/ningguangpng.png"},
 		{name:"Noelle", grade: 4, element:"Geo", weapon:"Claymore", gender:"Female", city:"Mondstadt", image: "images/noellepng.png"},
@@ -73,8 +75,6 @@ var db = {
 		{name:"Yoimiya", grade: 5, element:"Pyro", weapon:"Bow", gender:"Female", city:"Inazuma", image: "images/zz1623072217yoimiyapng.png"},
 		{name:"Yun Jin", grade: 4, element:"Geo", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/zz1637940580yunjinpng.png"},
 		{name:"Zhongli", grade: 5, element:"Geo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/zhonglipng.png"},
-		//{name:"Nahida", grade: 5, element:"Dendro", weapon:"Catalyst", gender:"Female", city:"Sumeru", image: "images/"},
-		//{name:"Layla", grade: 4, element:"Cryo", weapon:"Sword", gender:"Female", city:"Sumeru", image: "images/"},
 	],
 	banners: [
 		//{start: new Date(""), type:"standard", characters:["", "", "", ""]},
@@ -114,10 +114,15 @@ var db = {
 		{start: new Date("2022-08-24"), type:"character", characters: ["Tighnari", "Zhongli", "Collei", "Diona", "Fischl"]},
 		{start: new Date("2022-09-10"), type:"character", characters: ["Ganyu", "Kokomi", "Dori", "Sucrose", "Xingqiu"]},
 		{start: new Date("2022-09-28"), type:"character", characters: ["Cyno", "Venti", "Candace", "Kuki", "Sayu"]},
-		//{start: new Date(""), type:"character", characters: ["Nilou", "Albedo", "", "", ""]},
-		//{start: new Date(""), type:"character", characters: ["Nahida", "Layla", "Yae Miko", "Tartaglia", ""]},
-		//{start: new Date(""), type:"character", characters: ["Scaramouche", "Faruzan", "Albedo", "Raiden", "Ayaka"]},
+		//{start: new Date("2022-10-14"), type:"character", characters: ["Nilou", "Albedo", "", "", ""]},
+
+		//{start: new Date(""), type:"character", characters: ["Nahida", "Yoimiya", "Layla", "", ""]},
+		//{start: new Date(""), type:"character", characters: ["Tartaglia", "Yae Miko", "", "", ""]},
+
+		//{start: new Date(""), type:"character", characters: ["Scaramouche", "Faruzan", "Eula", "Raiden", "Ayaka"]},
+
 		//{start: new Date(""), type:"character", characters: ["Yao Yao", "Hu Tao", "Shenhe", "Yelan", "Xiao"]},
+
 		//{start: new Date(""), type:"character", characters: ["Dehya", "", "", "", ""]},
 		//{start: new Date(""), type:"character", characters: ["", "", "", "", ""]},
 	],
