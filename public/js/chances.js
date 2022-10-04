@@ -70,7 +70,8 @@ function createArtifacts(target, template, storage) {
 				const enchant4 = this.get('enchant4');
 				const enchant3 = this.get('enchant3');
 				const scale = this.get('scale');
-				return formula().add(obtain4.mul(enchant4).concat(obtain3.mul(enchant3))).mul(scale);
+				//return formula().add(obtain4.mul(enchant4).concat(obtain3.mul(enchant3))).mul(scale);
+				return formula().add(formula().add(obtain4).mul(enchant4).add(obtain3).mul(enchant3)).mul(scale);
 			},
 			enchant4() {
 				return this.enchant(4);
@@ -173,7 +174,7 @@ function createArtifacts(target, template, storage) {
 
 			// Bonus chances.
 			if(bonuses.length > (initial + loss) || bonuses.length < 1)
-				return new Formula();
+				return formula().add(0);
 
 			for(let i = 0; i < bonuses.length; i++)
 				f.mul(formula(f => f.add(bWeights[bonuses[i]]).mul(Math.min(initial + loss, 4) - i)));
@@ -188,8 +189,8 @@ function createArtifacts(target, template, storage) {
 		enchant(initial) {
 			const loss = parseInt(this.get('loss'));
 			const bonuses = this.get('bonus').length;
-			return loss < 1 && initial < 4 ? formula() : //(1/4 * bonuses)**(5 - loss);
-				formula().add(formula().add(formula().add(1).div(4)).mul(bonuses)).pow(5 - loss);
+			return loss < 1 && initial < 4 ? formula().add(0) : //(1/4 * bonuses)**(5 - loss);
+				formula().add(formula().add(formula().add(1*bonuses).div(4))).pow(5 - loss);
 		},
 		format(n) {
 			switch(this.get('format')) {

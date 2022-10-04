@@ -33,10 +33,10 @@ class Formula {
 		f.data.push('floor', this);
 		return f;
 	}
-	concat(value) {
-		this.data.push(...value.data);
-		return this;
-	}
+	// concat(value) {
+	// 	this.data.push(...value.data);
+	// 	return this;
+	// }
 
 	evaluate() { // TODO operator precedence
 		if(!this.data.length)
@@ -95,8 +95,8 @@ class Formula {
 				t.finalize();
 				if(t.data.length < 3)
 					return t.toText();
-				else if(t.data.length == 3 && t.data[1] == '/' && plain(t.data[0]) && plain(t.data[2]))
-					return t.data.join('');
+				// else if(t.data.length == 3 && t.data[1] == '/' && plain(t.data[0]) && plain(t.data[2]))
+				// 	return t.data.join('');
 				else if(t.data.length == 3 && t.data[1] == '^' && plain(t.data[2]))
 					return t.toText();
 				else
@@ -107,12 +107,37 @@ class Formula {
 				return t;
 		}).join('');
 	}
-	toHtml() {
+	toHtml(parenthesis) { // TODO Auto filter needless parenthesis.
+		if(!this.data.length)
+			return '';
 
+		function plain(value) {
+			return !(value instanceof Formula);
+		}
+		this.finalize();
+
+		if(this.data.length == 3 && this.data[1] == '/' && plain(this.data[0]) && plain(this.data[2]))
+			return this.data.join(''); // FIXME problem with ^ operator.
+
+		let temp = this.data.map(function(t) {
+			if(t instanceof Formula)
+				return t.toHtml(true);
+			else if(typeof(t) == 'string' && t.match(/[+\-×\/]/))
+				return ' ' + t + ' ';
+			else
+				return t;
+		});
+
+		if(temp.length < 3)
+			parenthesis = false;
+		else if(temp.length == 3 && temp[1] == '^' && plain(temp[2]))
+			return temp.join('').replaceAll(/\^(\d+)/g, '<sup>$1</sup>');
+
+		return parenthesis ? '(' + temp.join('') + ')' : temp.join('');
 	}
 	finalize() {
 		if(this.finalized)
-			return;
+			return this;
 		else
 			this.finalized = true;
 
@@ -131,6 +156,7 @@ class Formula {
 		}
 		if(this.data[0] == 1 && this.data[1] == '×')
 			this.data.splice(0, 2);
+		return this;
 	}
 }
 
