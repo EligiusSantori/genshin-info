@@ -27,7 +27,7 @@
 		.todo { margin-top: 1em; font-style: italic; }
 	</style>
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/mathjs@11.2.1/dist/math.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/mathjs@11.2.1/lib/browser/math.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
 	<!-- <script>MathJax = { loader: {load: ['input/asciimath', 'output/chtml']} }</script>
 	<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/startup.js"></script> -->
@@ -138,25 +138,25 @@
 				<tr><th></th><th>Chances to obtain</th><th>Chances to enchant</th><th>Chances to obtain & enchant</th></tr>
 				<tr>
 					<th>For 4-stats artifact</th>
-					<td>{{ @this.format(cloneDeep(obtain4).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(formula.evaluate(formula.multiply(obtain4, scale))) }}</td>
 					<td>{{ @this.format(enchant4.evaluate()) }}</td>
-					<td>{{ @this.format(cloneDeep(obtain4).mul(enchant4).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(formula.evaluate(formula.multiply(obtain4, enchant4, scale))) }}</td>
 				</tr>
 				<tr>
 					<th>For 3-stats artifact</th>
-					<td>{{ @this.format(cloneDeep(obtain3).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(formula.evaluate(formula.multiply(obtain3, scale))) }}</td>
 					<td>{{ @this.format(enchant3.evaluate()) }}</td>
-					<td>{{ @this.format(cloneDeep(obtain3).mul(enchant3).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(formula.evaluate(formula.multiply(obtain3, enchant3, scale))) }}</td>
 				</tr>
 				<tr>
 					<th>Summary</th>
-					<td>{{ @this.format(cloneDeep(obtainAll).mul(scale).evaluate()) }}</td>
+					<td>{{ @this.format(formula.evaluate(formula.multiply(formula.add(obtain4, obtain3), scale))) }}</td>
 					<td></td>
-					<td>{{ @this.format(summary.evaluate()) }}</td>
+					<td>{{ @this.format(formula.evaluate(summary)) }}</td>
 				</tr>
 				<tr>
 					<th>Formula</th>
-					<td colspan="3">{{{ summary.toHtml() }}}</td>
+					<td colspan="3">{{ summary.toString() }}</td>
 				</tr>
 				{{#if origin != 'strongbox'}}
 					<tfoot>
@@ -171,7 +171,6 @@
 					</tfoot>
 				{{/if}}
 			</table>
-
 		{{/if}}
 
 		{{#if @this.constructor.DEBUG}}
@@ -183,7 +182,7 @@
 		{{/if}}
 	</script>
 	<script type="text/javascript">
-		Ractive.DEBUG = false;
+		Ractive.DEBUG = /unminified/.test(function(){/*unminified*/})
 		window.onload = function() { createArtifacts('#content', '#artifact-chances', 'controls'); }
 	</script>
 </body>
