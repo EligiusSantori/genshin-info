@@ -43,7 +43,8 @@ function createArtifacts(target, template, storage) {
 		target: target,
 		template: template,
 		data: Object.assign(JSON.parse(localStorage.getItem(storage)) || _default, {
-			cloneDeep: _.cloneDeep,
+			//cloneDeep: _.cloneDeep,
+			formula: formula,
 			hasBonus(stat) {
 				return this.get('bonus').indexOf(stat) >= 0;
 			},
@@ -59,19 +60,17 @@ function createArtifacts(target, template, storage) {
 			obtain3() {
 				return this.obtain(3);
 			},
-			obtainAll() {
-				const obtain4 = this.get('obtain4');
-				const obtain3 = this.get('obtain3');
-				return formula().add(formula().add(obtain4).add(obtain3));
-			},
 			summary() {
-				const obtain4 = _.cloneDeep(this.get('obtain4'));
-				const obtain3 = _.cloneDeep(this.get('obtain3'));
-				const enchant4 = this.get('enchant4');
-				const enchant3 = this.get('enchant3');
+				const [obtain4, obtain3] = [this.get('obtain4'), this.get('obtain3')];
+				const [enchant4, enchant3] = [this.get('enchant4'), this.get('enchant3')];
+				const total4 = formula.multiply(obtain4, enchant4);
+				const total3 = formula.multiply(obtain3, enchant3);
 				const scale = this.get('scale');
-				//return formula().add(obtain4.mul(enchant4).concat(obtain3.mul(enchant3))).mul(scale);
-				return formula().add(formula().add(obtain4).mul(enchant4).add(obtain3).mul(enchant3)).mul(scale);
+
+				if(!obtain3.equals(formula.constant(0)) || !enchant3.equals(formula.constant(0)))
+					return formula.multiply(formula.add(total4, total3), scale);
+				else
+					return formula.multiply(total4, scale);
 			},
 			enchant4() {
 				return this.enchant(4);
@@ -82,13 +81,12 @@ function createArtifacts(target, template, storage) {
 			dropChance() {
 				const resin = this.get('multiplier.resin');
 				switch(this.get('origin')) {
-					case 'domain': return formula().add(resin).div(20).mul(1.065);
+					case 'domain': return formula.parenthesis(formula.multiply(formula.divide(resin, 20), 1.065));
 				}
 			},
 			tries() {
 				const artifacts = this.get('artifacts');
-				return formula().add(formula().add(artifacts).sub(1)).div(2).floor();
-				return artifacts ? formula(f => f.floor(formula(f => f.add(formula(f => f.add(artifacts).sub(1))).div(2)))) : formula(f => f.add(0));
+				return artifacts ? formula.function('floor', formula.divide(formula.subtract(artifacts, 1), 2)) : formula.constant(0);
 			},
 			scale() { // Resin/tries multiplier.
 				if(this.get('origin') != 'strongbox')
@@ -152,47 +150,47 @@ function createArtifacts(target, template, storage) {
 			const sWeights = this.statWeights(slot);
 			const bWeights = this.bonusWeights(slot, stat);
 
-			let f = formula();
-			f.add(1);
+			let expr = formula.constant(1);
 
 			// Type chance.
 			if(origin != 'strongbox' && strict)
-				f.div(2);
+				expr = formula.divide(expr, 2);
 
 			// Slot chance.
-			f.div(5);
+			expr = formula.divide(expr, 5);
 
 			// Stat chance.
 			if(slot > 1)
-				f.mul(sWeights[stat]);
+				expr = formula.multiply(expr, sWeights[stat]);
 
 			// Bonus count chance.
 			if(initial == 4)
-				f.mul(origin == 'domain' ? formula(f => f.add(1).div(5)) : formula(f => f.add(1).div(3)));
+				expr = formula.multiply(expr, origin == 'domain' ? math.fraction(1, 5) : math.fraction(1, 3));
 			else
-				f.mul(origin == 'domain' ? formula(f => f.add(4).div(5)) : formula(f => f.add(2).div(3)));
+				expr = formula.multiply(expr, origin == 'domain' ? math.fraction(4, 5) : math.fraction(2, 3));
 
 			// Bonus chances.
 			if(bonuses.length > (initial + loss) || bonuses.length < 1)
-				return formula().add(0);
+				return formula.constant(0);
 
 			for(let i = 0; i < bonuses.length; i++)
-				f.mul(formula(f => f.add(bWeights[bonuses[i]]).mul(Math.min(initial + loss, 4) - i)));
+				expr = formula.multiply(expr, formula.parenthesis(formula.multiply(bWeights[bonuses[i]], Math.min(initial + loss, 4) - i)));
 
 			if(Ractive.DEBUG) {
 				this.checkWeights(slot, sWeights, false);
 				this.checkWeights(slot, bWeights, true);
 				console.log(initial, parseInt(slot), stat, bonuses, sWeights, bWeights);
 			}
-			return f;
+			return expr;
 		},
 		enchant(initial) {
 			const loss = parseInt(this.get('loss'));
 			const bonuses = this.get('bonus').length;
-			return loss < 1 && initial < 4 ? formula().add(0) : //(1/4 * bonuses)**(5 - loss);
-				formula().add(formula().add(formula().add(1*bonuses).div(4))).pow(5 - loss);
+			return loss < 1 && initial < 4 ? formula.constant(0) :
+				formula.pow(formula.fraction(1 * bonuses, 4), 5 - loss);
 		},
 		format(n) {
+			n = math.number(n);
 			switch(this.get('format')) {
 				case 'auto': return n < 0.01 || n >= 1 ? this.fraction(n) : this.percent(n, 1);
 				case 'percent': return this.percent(n, 2);

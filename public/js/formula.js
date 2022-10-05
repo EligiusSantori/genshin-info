@@ -1,167 +1,33 @@
-class Formula {
-	constructor(name) {
-		this.name = name || null;
-		this.data = [];
-		this.finalized = false;
-	}
-	// copy() {
-	// 	return
-	// }
-
-	add(value) {
-		this.data.push('+', value);
-		return this;
-	}
-	sub(value) {
-		this.data.push('-', value);
-		return this;
-	}
-	mul(value) {
-		this.data.push('×', value);
-		return this;
-	}
-	div(value) {
-		this.data.push('/', value);
-		return this;
-	}
-	pow(value) {
-		this.data.push('^', value);
-		return this;
-	}
-	floor() {
-		let f = new Formula();
-		f.data.push('floor', this);
-		return f;
-	}
-	// concat(value) {
-	// 	this.data.push(...value.data);
-	// 	return this;
-	// }
-
-	evaluate() { // TODO operator precedence
-		if(!this.data.length)
-			return 0;
-
-		function evaluated(value) {
-			return value instanceof Formula ? value.evaluate() : value;
+var formula;
+(function() {
+	function wrap(expr) {
+		switch(math.typeOf(expr)) {
+			case 'number':
+				// if(expr % 1 !== 0)
+					// expr = math.fraction(expr);
+					// expr = math.round(expr, 4);
+			case 'Fraction':
+				return new math.ConstantNode(expr);
+			default: return expr;
 		}
-		function unary(vr, a, fn) {
-			a.pop();
-			a.push(fn(evaluated(vr)));
-			return a;
-		}
-		function binary(vr, a, fn) {
-			vr = fn(evaluated(a[a.length - 2]), evaluated(vr));
-			a.splice(a.length - 2, 2, vr);
-			return a;
-		}
-
-		let temp = this.data.reduce(function(a, vr) {
-			switch(a[a.length - 1]) {
-				case 'floor': return unary(vr, a, Math.floor);
-				case '^': return binary(vr, a, Math.pow);
-				default: a.push(vr); return a;
-			}
-		}, []).reduce(function(a, vr) {
-			switch(a[a.length - 1]) {
-				case '×': return binary(vr, a, _.multiply);
-				case '/': return binary(vr, a, _.divide);
-				default: a.push(vr); return a;
-			}
-		}, []).reduce(function(a, vr) {
-			switch(a[a.length - 1]) {
-				case '+': return binary(vr, a, _.add);
-				case '-': return binary(vr, a, _.subtract);
-				default: a.push(vr); return a;
-			}
-		}, []);
-
-		if(temp.length == 1)
-			return evaluated(temp[0]);
-		else
-			throw 'Expression is not calculable.';
 	}
-	toText() { // TODO groups
-		if(!this.data.length)
-			return '';
 
-		function plain(value) {
-			return !(value instanceof Formula);
-		}
-
-		this.finalize();
-		return this.data.map(function(t) {
-			if(t instanceof Formula) {
-				t.finalize();
-				if(t.data.length < 3)
-					return t.toText();
-				// else if(t.data.length == 3 && t.data[1] == '/' && plain(t.data[0]) && plain(t.data[2]))
-				// 	return t.data.join('');
-				else if(t.data.length == 3 && t.data[1] == '^' && plain(t.data[2]))
-					return t.toText();
-				else
-					return '(' + t.toText() + ')';
-			} else if(typeof(t) == 'string' && t.match(/[+\-×\/]/))
-				return ' ' + t + ' ';
-			else
-				return t;
-		}).join('');
+	formula = {
+		constant(c) { return new math.ConstantNode(c); },
+		parenthesis(node) { return new math.ParenthesisNode(node); },
+		function(fn, node) { return new math.FunctionNode(fn, [node]); },
+		fraction(a, b) { return new math.ConstantNode(math.fraction(a, b)); },
+		add(...args) { return args.reduce((a, v) => new math.OperatorNode('+', 'add', [wrap(a), wrap(v)]))},
+		subtract(...args) { return args.reduce((a, v) => new math.OperatorNode('-', 'subtract', [wrap(a), wrap(v)]))},
+		multiply(...args) { return args.reduce((a, v) => new math.OperatorNode('×', 'multiply', [wrap(a), wrap(v)]))},
+		divide(...args) { return args.reduce((a, v) => new math.OperatorNode('/', 'divide', [wrap(a), wrap(v)]))},
+		pow(a, b) { return new math.OperatorNode('^', 'pow', [wrap(a), wrap(b)]); },
+		evaluate(expr) {
+			return expr.cloneDeep().transform(function(node) {
+				if(node.isConstantNode && node.value % 1 !== 0)
+					node.value = math.fraction(node.value);
+				return node;
+			}).evaluate();
+		},
 	}
-	toHtml(parenthesis) { // TODO Auto filter needless parenthesis.
-		if(!this.data.length)
-			return '';
-
-		function plain(value) {
-			return !(value instanceof Formula);
-		}
-		this.finalize();
-
-		if(this.data.length == 3 && this.data[1] == '/' && plain(this.data[0]) && plain(this.data[2]))
-			return this.data.join(''); // FIXME problem with ^ operator.
-
-		let temp = this.data.map(function(t) {
-			if(t instanceof Formula)
-				return t.toHtml(true);
-			else if(typeof(t) == 'string' && t.match(/[+\-×\/]/))
-				return ' ' + t + ' ';
-			else
-				return t;
-		});
-
-		if(temp.length < 3)
-			parenthesis = false;
-		else if(temp.length == 3 && temp[1] == '^' && plain(temp[2]))
-			return temp.join('').replaceAll(/\^(\d+)/g, '<sup>$1</sup>');
-
-		return parenthesis ? '(' + temp.join('') + ')' : temp.join('');
-	}
-	finalize() {
-		if(this.finalized)
-			return this;
-		else
-			this.finalized = true;
-
-		switch(this.data[0]) {
-			case '+': this.data.shift(); break;
-			case '-':
-				if(this.data[1] instanceof Formula)
-					this.data.unshift(0);
-				else {
-					this.data.shift();
-					this.data[0] = -this.data[0];
-				}
-			break;
-			case 'floor': break;
-			default: this.data.unshift(0);
-		}
-		if(this.data[0] == 1 && this.data[1] == '×')
-			this.data.splice(0, 2);
-		return this;
-	}
-}
-
-function formula(fn, ...args) {
-	let f = new Formula(...args);
-	fn && fn(f);
-	return f;
-}
+})();
