@@ -43,7 +43,6 @@ function createArtifacts(target, template, storage) {
 		target: target,
 		template: template,
 		data: Object.assign(JSON.parse(localStorage.getItem(storage)) || _default, {
-			//cloneDeep: _.cloneDeep,
 			formula: formula,
 			hasBonus(stat) {
 				return this.get('bonus').indexOf(stat) >= 0;
@@ -173,13 +172,19 @@ function createArtifacts(target, template, storage) {
 			if(bonuses.length > (initial + loss) || bonuses.length < 1)
 				return formula.constant(0);
 
-			for(let i = 0; i < bonuses.length; i++)
-				expr = formula.multiply(expr, formula.parenthesis(formula.multiply(bWeights[bonuses[i]], Math.min(initial + loss, 4) - i)));
+			const avg = formula.function('mean', ...bonuses.map(b => formula.constant(bWeights[b])));
+			for(let i = 0, w, n, m = Math.min(initial + loss, 4); i < bonuses.length; i++) {
+				w = bWeights[bonuses[i]];
+				n = m - i > 1 ? formula.multiply(w, m - i) : w; // TODO auto-optimize.
+				expr = formula.multiply(expr, formula.parenthesis(
+					i > 0 ? formula.divide(n, formula.subtract(1, i > 1 ? formula.multiply(avg, i) : avg)) : n // TODO auto-optimize.
+				));
+			}
 
 			if(Ractive.DEBUG) {
 				this.checkWeights(slot, sWeights, false);
 				this.checkWeights(slot, bWeights, true);
-				console.log(initial, parseInt(slot), stat, bonuses, sWeights, bWeights);
+				console.debug(initial, parseInt(slot), stat, bonuses, sWeights, bWeights);
 			}
 			return expr;
 		},

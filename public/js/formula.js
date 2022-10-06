@@ -15,7 +15,7 @@ var formula;
 	formula = {
 		constant(c) { return new math.ConstantNode(c); },
 		parenthesis(node) { return new math.ParenthesisNode(node); },
-		function(fn, node) { return new math.FunctionNode(fn, [node]); },
+		function(fn, ...nodes) { return new math.FunctionNode(fn, nodes); },
 		fraction(a, b) { return new math.ConstantNode(math.fraction(a, b)); },
 		add(...args) { return args.reduce((a, v) => new math.OperatorNode('+', 'add', [wrap(a), wrap(v)]))},
 		subtract(...args) { return args.reduce((a, v) => new math.OperatorNode('-', 'subtract', [wrap(a), wrap(v)]))},
@@ -28,6 +28,9 @@ var formula;
 					node.value = math.fraction(node.value);
 				return node;
 			}).evaluate();
+		},
+		render(expr) {
+			return expr.toString();
 		},
 	}
 })();

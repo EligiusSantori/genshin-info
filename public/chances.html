@@ -156,7 +156,7 @@
 				</tr>
 				<tr>
 					<th>Formula</th>
-					<td colspan="3">{{ summary.toString() }}</td>
+					<td colspan="3">{{ formula.render(summary) }}</td>
 				</tr>
 				{{#if origin != 'strongbox'}}
 					<tfoot>
@@ -182,7 +182,8 @@
 		{{/if}}
 	</script>
 	<script type="text/javascript">
-		Ractive.DEBUG = /unminified/.test(function(){/*unminified*/})
+		//Ractive.DEBUG = /unminified/.test(function(){/*unminified*/})
+		Ractive.DEBUG = window.location.protocol.startsWith('file:');
 		window.onload = function() { createArtifacts('#content', '#artifact-chances', 'controls'); }
 	</script>
 </body>
