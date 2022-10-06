@@ -3,6 +3,7 @@ const _default = {
 	strict: true,
 	loss: 0,
 	format: 'auto',
+	mode: 'precise',
 	multiplier: {
 		type: 'resin',
 		resin: 40,
@@ -54,22 +55,35 @@ function createArtifacts(target, template, storage) {
 		}),
 		computed: {
 			obtain4() {
-				return this.obtain(4);
+				const initial = 4, origin = this.get('origin'), loss = parseInt(this.get('loss'));
+				const chance = origin == 'domain' ? math.fraction(1, 5) : math.fraction(1, 3); // Initial bonus count chance.
+				return formula.multiply(this.obtainChance(Math.min(initial + loss, 4)), chance);
 			},
 			obtain3() {
-				return this.obtain(3);
+				const initial = 3, origin = this.get('origin'), loss = parseInt(this.get('loss'));
+				const chance = origin == 'domain' ? math.fraction(4, 5) : math.fraction(2, 3); // Initial bonus count chance.
+				return formula.multiply(this.obtainChance(Math.min(initial + loss, 4)), chance);
+			},
+			obtain() {
+				if(parseInt(this.get('loss')) > 0)
+					return this.obtainChance(4);
+				else
+					formula.add(this.get('obtain4'), this.get('obtain3'));
 			},
 			summary() {
-				const [obtain4, obtain3] = [this.get('obtain4'), this.get('obtain3')];
-				const [enchant4, enchant3] = [this.get('enchant4'), this.get('enchant3')];
-				const total4 = formula.multiply(obtain4, enchant4);
-				const total3 = formula.multiply(obtain3, enchant3);
-				const scale = this.get('scale');
+				const [enchant4, enchant3, scale] = [this.get('enchant4'), this.get('enchant3'), this.get('scale')];
+				if(parseInt(this.get('loss')) > 0)
+					return formula.multiply(this.get('obtain'), enchant4, scale);
+				else {
+					const [obtain4, obtain3] = [this.get('obtain4'), this.get('obtain3')];
+					const total4 = formula.multiply(obtain4, enchant4);
+					const total3 = formula.multiply(obtain3, enchant3);
 
-				if(!obtain3.equals(formula.constant(0)) || !enchant3.equals(formula.constant(0)))
-					return formula.multiply(formula.add(total4, total3), scale);
-				else
-					return formula.multiply(total4, scale);
+					if(!obtain3.equals(formula.constant(0)) || !enchant3.equals(formula.constant(0)))
+						return formula.multiply(formula.add(total4, total3), scale);
+					else
+						return formula.multiply(total4, scale);
+				}
 			},
 			enchant4() {
 				return this.enchant(4);
@@ -139,12 +153,49 @@ function createArtifacts(target, template, storage) {
 		enchantable(exp) {
 			return (exp * 0.9 + exp * 0.01 * 5 + exp * 0.09 * 2) / 270475;
 		},
-		obtain(initial) {
+		elasticChance(weights, rolls) {
+			if(weights.length > rolls || weights.length < 1)
+				return formula.constant(0);
+
+			// const avg = formula.function('mean', ...bonuses.map(b => formula.constant(bWeights[b])));
+			// for(let i = 0, w, n, m = Math.min(initial + loss, 4); i < bonuses.length; i++) {
+			// 	w = bWeights[bonuses[i]];
+			// 	n = m - i > 1 ? formula.multiply(w, m - i) : w; // TODO auto-optimize.
+			// 	expr = formula.multiply(expr, formula.parenthesis(
+			// 		i > 0 ? formula.divide(n, formula.subtract(1, i > 1 ? formula.multiply(avg, i) : avg)) : n // TODO auto-optimize.
+			// 	));
+			// }
+			const avg = formula.function('mean', ...weights.map(formula.constant));
+			let expr = formula.constant(1);
+			for(let i = 0; i < weights.length; i++)
+				expr = formula.multiply(expr, formula.parenthesis(
+					formula.divide(formula.multiply(weights[i], rolls - i), formula.subtract(1, formula.multiply(avg, i)))
+				));
+			return expr;
+		},
+		orderedChance(weights) {
+			let temp = [], delta = formula.constant(1);
+			for(let weight of weights) {
+				temp.push(formula.parenthesis(formula.divide(weight, delta)));
+				delta = formula.subtract(delta, weight);
+			}
+			return formula.multiply(...temp);
+		},
+		permutatedChance(weights, rolls) {
+			if(weights.length > rolls || weights.length < 1)
+				return formula.constant(0);
+
+			const permutations = formula.function('sum', ...[...permute(weights)].map(this.orderedChance.bind(this)));
+			return formula.multiply(permutations, formula.parenthesis(formula.divide(
+				formula.permutations(rolls, weights.length),
+				formula.factorial(weights.length)
+			)));
+		},
+		obtainChance(rolls) {
 			const origin = this.get('origin');
 			const strict = this.get('strict');
 			const slot = this.get('slot');
 			const stat = this.get('stat');
-			const loss = parseInt(this.get('loss'));
 			const bonuses = ((v, f) => f(v))(this.get('bonus'), Ractive.DEBUG ? _.shuffle : _.identity); // Results should still same no matter of order.
 			const sWeights = this.statWeights(slot);
 			const bWeights = this.bonusWeights(slot, stat);
@@ -162,29 +213,17 @@ function createArtifacts(target, template, storage) {
 			if(slot > 1)
 				expr = formula.multiply(expr, sWeights[stat]);
 
-			// Bonus count chance.
-			if(initial == 4)
-				expr = formula.multiply(expr, origin == 'domain' ? math.fraction(1, 5) : math.fraction(1, 3));
-			else
-				expr = formula.multiply(expr, origin == 'domain' ? math.fraction(4, 5) : math.fraction(2, 3));
-
 			// Bonus chances.
-			if(bonuses.length > (initial + loss) || bonuses.length < 1)
-				return formula.constant(0);
-
-			const avg = formula.function('mean', ...bonuses.map(b => formula.constant(bWeights[b])));
-			for(let i = 0, w, n, m = Math.min(initial + loss, 4); i < bonuses.length; i++) {
-				w = bWeights[bonuses[i]];
-				n = m - i > 1 ? formula.multiply(w, m - i) : w; // TODO auto-optimize.
-				expr = formula.multiply(expr, formula.parenthesis(
-					i > 0 ? formula.divide(n, formula.subtract(1, i > 1 ? formula.multiply(avg, i) : avg)) : n // TODO auto-optimize.
-				));
+			const weights = bonuses.map(b => bWeights[b]);
+			switch(this.get('mode')) {
+				case 'precise': expr = formula.multiply(expr, this.permutatedChance(weights, rolls)); break;
+				case 'approx': expr = formula.multiply(expr, this.elasticChance(weights, rolls)); break;
 			}
 
 			if(Ractive.DEBUG) {
 				this.checkWeights(slot, sWeights, false);
 				this.checkWeights(slot, bWeights, true);
-				console.debug(initial, parseInt(slot), stat, bonuses, sWeights, bWeights);
+				console.debug(parseInt(slot), stat, bonuses, sWeights, bWeights);
 			}
 			return expr;
 		},
@@ -192,7 +231,7 @@ function createArtifacts(target, template, storage) {
 			const loss = parseInt(this.get('loss'));
 			const bonuses = this.get('bonus').length;
 			return loss < 1 && initial < 4 ? formula.constant(0) :
-				formula.pow(formula.fraction(1 * bonuses, 4), 5 - loss);
+				formula.pow(formula.parenthesis(formula.fraction(1 * bonuses, 4)), 5 - loss);
 		},
 		format(n) {
 			n = math.number(n);
@@ -253,8 +292,8 @@ function createArtifacts(target, template, storage) {
 		this.set('multiplier.days', Math.round(resin % year % month / day));
 	});
 	ractive.on('setTime', function(event) {
-		let days = parseInt(this.get('multiplier.days')) + parseInt(this.get('multiplier.months')) * 30 + parseInt(this.get('multiplier.years') * 365);
-		this.set('multiplier.resin', days * 24 * 60 / 8);
+		const [years, months, days] = _.values(_.pick(this.get('multiplier'), ['years', 'months', 'days'])).map(n => parseInt(n || 0));
+		this.set('multiplier.resin', (years * 365 + months * 30 + days) * 24 * 60 / 8);
 	});
 	ractive.on('resetData', function() {
 		this.set(_default);

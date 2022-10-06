@@ -14,7 +14,7 @@
 		tfoot th { font-weight: normal; }
 		tfoot td { font-style: italic; }
 		input[type="text"], input[type="number"] { height: 1.5em; }
-		.panel { display: inline-block; margin: 0.15em 0; }
+		.panel { display: inline-block; /*margin: 0.15em 0;*/ }
 
 		.display tr:nth-child(4) td:last-child { background: hsl(60, 80%, 80%); }
 		.resin input[type="number"] { width: 6em; }
@@ -83,10 +83,18 @@
 						{{/if}}
 					</td>
 					<td>
-						Format:
-						<label><input type="radio" name="{{ format }}" value="auto" /> Auto</label>
-						<label><input type="radio" name="{{ format }}" value="percent" /> Percent</label>
-						<label><input type="radio" name="{{ format }}" value="fraction" /> Fraction</label>
+						<div class="panel numbers">
+							Numbers:
+							<label><input type="radio" name="{{ format }}" value="auto" /> Auto</label>
+							<label><input type="radio" name="{{ format }}" value="percent" /> Percent</label>
+							<label><input type="radio" name="{{ format }}" value="fraction" /> Fraction</label>
+						</div>
+						<div class="panel formula">
+							Formula:
+							<label><input type="radio" name="{{ mode }}" value="precise" /> Precise</label>
+							<label><input type="radio" name="{{ mode }}" value="approx" /> Approximate</label>
+							<!-- <label><input type="radio" name="{{ mode }}" value="approx" /> TeX</label> -->
+						</div>
 					</td>
 				</tr>
 				<tr>
@@ -178,6 +186,7 @@
 				<li>TODO: Configurable world level.</li>
 				<li>TODO: Weekly and normal boss origin.</li>
 				<li>TODO: Render formula by MathJax.</li>
+				<li>TODO: Formula auto-optimization.</li>
 			</ol>
 		{{/if}}
 	</script>
