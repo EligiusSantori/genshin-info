@@ -30,7 +30,7 @@
 				<td>
 					{{#each filter(characters, {weapon: w.name, element: e.name}): i}}
 					<div class="character" style="background-image: url({{image}})" title="{{name}}" data-grade="{{grade}}"></div>
-					{{#if i % 3 == 2 - @last % 2 }}<br />{{/if}}
+					<!--{{#if i % 3 == 2 - @last % 2 }}<br />{{/if}}-->
 					{{/each}}
 				</td>
 				{{/each}}

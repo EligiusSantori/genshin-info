@@ -75,6 +75,10 @@ var db = {
 		{name:"Yoimiya", grade: 5, element:"Pyro", weapon:"Bow", gender:"Female", city:"Inazuma", image: "images/zz1623072217yoimiyapng.png"},
 		{name:"Yun Jin", grade: 4, element:"Geo", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/zz1637940580yunjinpng.png"},
 		{name:"Zhongli", grade: 5, element:"Geo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/zhonglipng.png"},
+		{name:"Scaramouche", grade: 5, element:"Anemo", weapon:"Catalyst", gender:"Male", city:"Sumeru", image: "images/zzzzz-1667841064wandererpng.png"},
+		{name:"Faruzan", grade: 4, element:"Anemo", weapon:"Bow", gender:"Female", city:"Sumeru", image: "images/zzzzz-1667841086faruzanpng.png"},
+		{name:"Alhaitham", grade: 5, element:"Dendro", weapon:"Sword", gender:"Male", city:"Sumeru", image: "images/zzzzz-1670593573alhathampng.png"},
+		{name:"Yaoyao", grade: 4, element:"Dendro", weapon:"Polearm", gender:"Female", city:"Liyue", image: "images/zzzzz-1670593556yaoyaopng.png"},
 	],
 	banners: [
 		//{start: new Date(""), type:"standard", characters:["", "", "", ""]},
@@ -117,12 +121,12 @@ var db = {
 		{start: new Date("2022-10-14"), type:"character", characters: ["Nilou", "Albedo", "Barbara", "Beidou", "Xiangling"]},
 		{start: new Date("2022-11-02"), type:"character", characters: ["Nahida", "Yoimiya", "Razor", "Noelle", "Bennett"]},
 		{start: new Date("2022-11-18"), type:"character", characters: ["Yae Miko", "Tartaglia", "Layla", "Thoma", "Heizou"]},
+		{start: new Date("2022-12-07"), type:"character", characters: ["Scaramouche", "Itto", "Faruzan", "Gorou", "Yanfei"]},
+		// {start: new Date(""), type:"character", characters: ["Raiden", "Ayato", "Sara", "", ""]},
+		// {start: new Date(""), type:"character", characters: ["Alhaitham", "Xiao", "Yaoyao", "", ""]},
+		// {start: new Date(""), type:"character", characters: ["Hu Tao", "Yelan", "", "", ""]},
 
-		//{start: new Date(""), type:"character", characters: ["Scaramouche", "Faruzan", "Eula", "Raiden", "Ayaka"]},
-
-		//{start: new Date(""), type:"character", characters: ["Yao Yao", "Hu Tao", "Shenhe", "Yelan", "Xiao"]},
-
-		//{start: new Date(""), type:"character", characters: ["Dehya", "", "", "", ""]},
+		//{start: new Date(""), type:"character", characters: ["Dehya", "Shenhe", "", "", ""]},
 		//{start: new Date(""), type:"character", characters: ["", "", "", "", ""]},
 	],
 };
