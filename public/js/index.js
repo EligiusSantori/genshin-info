@@ -48,6 +48,7 @@ var db = {
 		{name:"Kaveh", grade: 4, element:"Dendro", weapon:"Claymore", gender:"Male", city:"Sumeru", image: "images/zzzzz-1677684961kavehpng.png"},
 		{name:"Kazuha", grade: 5, element:"Anemo", weapon:"Sword", gender:"Male", city:"Inazuma", image: "images/zz1619371051kazuhapng.png"},
 		{name:"Keqing", grade: 5, element:"Electro", weapon:"Sword", gender:"Female", city:"Liyue", image: "images/keqingpng.png"},
+		{name:"Kirara", grade: 4, element:"Dendro", weapon:"Sword", gender:"Female", city:"Inazuma", image: "images/zzzzz-1681394345momoka.png"},
 		{name:"Klee", grade: 5, element:"Pyro", weapon:"Catalyst", gender:"Female", city:"Mondstadt", image: "images/kleepng.png"},
 		{name:"Kokomi", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Inazuma", image: "images/zz1627420866kokomipng.png"},
 		{name:"Kuki", grade: 4, element:"Electro", weapon:"Sword", gender:"Female", city:"Inazuma", image: "images/zz1650057785shinobupng.png"},
@@ -85,7 +86,7 @@ var db = {
 		{name:"Zhongli", grade: 5, element:"Geo", weapon:"Polearm", gender:"Male", city:"Liyue", image: "images/zhonglipng.png"},
 	],
 	banners: [
-		//{start: new Date(""), type:"character", characters:["", "", "", "", ""]},
+		//{start: new Date(""), type:"character", characters: ["", "", "", "", ""]},
 		{start: new Date("2020-09-28"), type:"character", characters: ["Venti", "Barbara", "Fischl", "Xiangling"]},
 		{start: new Date("2020-10-20"), type:"character", characters: ["Klee", "Xingqiu", "Noelle", "Sucrose"]},
 		{start: new Date("2020-11-11"), type:"character", characters: ["Tartaglia", "Diona", "Beidou", "Ningguang"]},
@@ -131,8 +132,9 @@ var db = {
 		{start: new Date("2023-02-07"), type:"character", characters: ["Hu Tao", "Yelan", "Xingqiu", "Ningguang", "Beidou"]},
 		{start: new Date("2023-03-01"), type:"character", characters: ["Dehya", "Cyno", "Bennett", "Barbara", "Collei"]},
 		{start: new Date("2023-03-21"), type:"character", characters: ["Shenhe", "Ayaka", "Diona", "Sucrose", "Mika"]},
-
-		//{start: new Date("2023-04-12"), type:"character", characters:["Nahida", "Nilou", "", "", ""]},
-		//{start: new Date(""), type:"character", characters:["Ganyu", "Baizhu", "", "", ""]},
+		{start: new Date("2023-04-12"), type:"character", characters: ["Nahida", "Nilou", "Kuki", "Dori", "Layla"]},
+		{start: new Date("2023-05-02"), type:"character", characters: ["Baizhu", "Ganyu", "Kaveh", "Candace", "Fischl"]},
+		//{start: new Date("2023-05-24"), type:"character", characters: ["Yae Miko", "Yoimiya", "Kirara", "Chongyun", "Yun Jin"]},
+		//{start: new Date(""), type:"character", characters: ["Alhaitham", "Kazuha", "Yaoyao", "Xiangling", "Heizou"]},
 	],
 };
