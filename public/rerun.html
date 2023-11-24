@@ -11,7 +11,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/moment@2.29.3/moment.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
 	<script defer="defer" src="js/index.js"></script>
-	<style>
+	<style type="text/css">
 		:root {
 			--grade4-color: rgba(154,112,175,1);
 			--grade5-color: rgba(193,117,33,1);
@@ -19,7 +19,8 @@
 			--grade5-st-color: rgba(193,117,33,0.7);
 		}
 		html, body, #content, table { height: 100%; padding: 0; margin: 0; }
-		table { width: 100%; overflow: hidden; border: none; font-size: small; line-height: 1; }
+		#content { overflow: auto; white-space: nowrap; }
+		table { min-width: 100%; overflow: hidden; empty-cells: show; border: none; font-size: small; line-height: 1; }
 		th, td {
 			border: thin #777 solid;
 			padding: 0;
@@ -28,74 +29,112 @@
 			position: relative;
 		}
 		td { color: #333; }
-		.now { color: white; }
-		.now .value { position: absolute; left: 0; top: 0; }
-		/* td:not(.now) { font-style: italic; } */
-		tr:first-of-type th:first-child { width: 10em; }
 		tr[data-grade="4"] { background-color: var(--grade4-st-color); }
 		tr[data-grade="5"] { background-color: var(--grade5-st-color); }
 		tr[data-grade="4"] th { background-color: var(--grade4-color); }
 		tr[data-grade="5"] th { background-color: var(--grade5-color); }
-		tr[data-grade="4"] .now .value { background-color: #99cc66; }
-		tr[data-grade="5"] .now .value { background-color: #33cc00; font-weight: bold; }
 
-		thead { line-height: 1.5; background-color: #666666; color: white; }
-		thead th { background-color: #666666; border-color: #999999; }
+		.current-rerun .now { color: white; }
+		.current-rerun tr[data-grade="4"] .now .value { background-color: #99cc66; }
+		.current-rerun tr[data-grade="5"] .now .value { background-color: #33cc00; font-weight: bold; }
+		.current-delay .now { color: white; }
+		.current-delay tr[data-grade="4"] .now .value { background-color: #6699ff; }
+		.current-delay tr[data-grade="5"] .now .value { background-color: #3366ff; font-weight: bold; }
 
-		.hover th:hover:before, .hover th:hover:after, .hover td:hover:before, .hover td:hover:after {
+		.header { line-height: 1.5; background-color: #666666; color: white; }
+		.header th { background-color: #666666; border-color: #999999; }
+		.header:first-child th { border-top: none; }
+		.header th[rowspan], th.name { border-left: none; }
+		.header th[rowspan="100%"] { vertical-align: top; }
+		.header th.advanced { padding: 1em 0.25em; text-align: left; }
+		th.name { width: 10em; min-width: 10em; }
+
+		.value { display: flex; width: 100%; height: 100%; justify-content: center; align-items: center; position: relative; z-index: 2; }
+		.now .value { position: absolute; left: 0; top: 0; }
+		.hover tr:not(.header) th:hover:before,
+		.hover tr:not(.header) th:hover:after,
+		.hover td:hover:before,
+		.hover td:hover:after {
 			content: '';
 			display: block;
 			position: absolute;
 			z-index: 1;
 			background-color: #dd9;
 		}
-		tbody th:hover:before, td:hover:before { width: 200vw; height: 100%; left: -100vw; top: 0; }
-		thead tr:not(:first-of-type) th:hover:after, td:hover:after { width: 100%; height: 200vh; left: 0; top: -100vh; }
-		thead tr:first-child th { z-index: 100; border-top: none; }
-		.value { display: flex; width: 100%; height: 100%; justify-content: center; align-items: center; position: relative; z-index: 2; }
+		.hover th:hover:before, td:hover:before { width: 200vw; height: 100%; left: -100vw; top: 0; }
+		.hover th:not(:first-child):hover:after, td:hover:after { width: 100%; height: 200vh; left: 0; top: -100vh; }
+		.hover tr.header:first-child th, .hover th.advanced { z-index: 100; }
 	</style>
 </head>
 
 <body>
 	<article id="content"></article>
 	<script id="layout" type="text/ractive">
-		<table class-hover="highlight">
-			<thead>
-				<tr>
-					<th rowspan="2">
-						<label><input type="checkbox" checked="{{highlight}}" /> Hover</label>
-						<label><input type="checkbox" checked="{{sort.grade}}" />&darr;Grade</label><br/>
-						<select value={{sort.type}}>
-							<option value="alphabet">&darr;Name</option><!-- By character name. -->
-							<option value="release">&darr;Release</option><!-- By release date. -->
-							<option value="delay">&darr;Delay</option><!-- By current re-run delay. -->
-							<option value="average">&darr;Average</option><!-- By average re-run delay. -->
-							<option value="rerun">&darr;Re-runs</option><!-- By re-runs count. -->
-						</select>
-					</th>
-					{{#each years}}<th colspan="{{.}}">{{@key}}</th>{{/each}}
-				</tr>
-				<tr>{{#each banners: i}}<th><span class="value">{{start.format('MM-DD')}}</span></th>{{/each}}</tr>
-			</thead>
-			<tbody>
-			{{#each data as r}}
-				{{#unless excluded.includes(r[0].name)}}
-				<tr data-grade="{{r[0].grade}}">
-				{{#each r as v: i}}
-					{{#if i == 0}}
-					<th><span class="value">{{v.name}}</span></th>
-					{{elseif v >= 0}}
-					<td style="background-color: rgba(204, 0, 0, {{v/365}})"><span class="value">{{v}}</span></td>
-					{{elseif v < 0}}
-					<td class="now"><span class="value">{{-v}}</span></td>
-					{{else}}
-					<td><span class="value"></span></td>
-					{{/if}}
-				{{/each}}
-				</tr>
-				{{/unless}}
+		<table class="current-{{config.current}}" class-hover="config.highlight.enabled" on-click="@this.hideConfig(@event)">
+			<tr class="header">
+				<th class="name" rowspan="2">
+					<button on-click="@this.toggle('config.toggle')">{{config.toggle ? 'Hide config' : 'Show config'}}</button><br />
+				</th>
+				{{#each config.calendar == 'dates' ? years : versions}}<th colspan="{{.}}">{{@key}}</th>{{/each}}
+			</tr>
+			<tr class="header">
+			{{#each banners: i}}
+				<th><span class="value">{{ config.calendar == 'dates' ? start.format('MM-DD') : version }}</span></th>
 			{{/each}}
-			</tbody>
+			</tr>
+
+			<tr class="header">
+			{{#if config.toggle}}
+				<th rowspan="100%" class="advanced">
+					<span>Measurements:</span><br />
+					<label><input type="radio" name="{{config.calendar}}" value="dates" /> Dates</label>
+					<label><input type="radio" name="{{config.calendar}}" value="versions" /> Versions</label>
+					<br /><br />
+
+					<span>Active cell mode:</span><br />
+					<label><input type="radio" name="{{config.current}}" value="rerun" /> Re-runs</label>
+					<label><input type="radio" name="{{config.current}}" value="delay" /> Delay</label>
+					<br /><br />
+
+					<span>Sorting:</span><br />
+					<select value={{config.sort.type}}>
+						<option value="alphabet">By char. name</option>
+						<option value="release">By release date</option>
+						<option value="delay">By current delay</option>
+						<option value="average">By average delay</option>
+						<option value="rerun">By re-runs count</option>
+					</select><br />
+					<label><input type="checkbox" checked="{{config.sort.grade}}" /> By grade</label><br />
+					<br />
+
+					<label><input type="checkbox" checked="{{config.fiveStars}}" /> Show 5-stars</label><br />
+					<label><input type="checkbox" checked="{{config.fourStars}}" /> Show 4-stars</label><br />
+					<label><input type="checkbox" checked="{{config.standard}}" /> Show standard</label><br />
+					<br />
+					<label><input type="checkbox" checked="{{config.highlight.enabled}}" /> Highlight</label><br />
+					<br />
+					<button on-click="@this.resetConfig()">Reset all</button>
+				</th>
+			{{/if}}
+			</tr>
+
+		{{#each data as r}}
+			<tr data-grade="{{r[0].grade}}">
+			{{#each r as v: i}}
+				{{#if i == 0}}
+					{{#if !config.toggle}}
+				<th class="name"><span class="value">{{v.name}}</span></th>
+					{{/if}}
+				{{elseif v >= 0}}
+				<td style="{{@this.progress(v)}}"><span class="value">{{Math.floor(v)}}</span></td>
+				{{elseif v < 0}}
+				<td class="now"><span class="value">{{Math.floor(-v)}}</span></td>
+				{{else}}
+				<td>&nbsp;</td>
+				{{/if}}
+			{{/each}}
+			</tr>
+		{{/each}}
 		</table>
 	</script>
 	<script type="text/javascript">
@@ -121,28 +160,105 @@
 					(by.type == 'rerun' && by.grade) ? [byGrade, byRerun, 'name'] :
 					[]);
 			}
-			function table(characters, banners) {
-				// console.log(Date.now());
+			function filter(excluded, config) {
+				return function(c) {
+					if(!config.fiveStars && c.grade == 5)
+						return false;
+					if(!config.fourStars && c.grade == 4)
+						return false;
+					if(!config.standard && excluded.includes(c.name))
+						return false;
+					return true;
+				};
+			}
+			function saveConfig(config) {
+				if(typeof(Storage) !== 'undefined')
+					localStorage.setItem('config', JSON.stringify(_.omit(config, 'toggle')));
+				else
+					console.warn('Web Storage is not supported in current browser.');
+			}
+			function loadConfig() {
+				if(typeof(Storage) !== 'undefined') {
+					return JSON.parse(localStorage.getItem('config'));
+				} else
+					console.warn('Web Storage is not supported in current browser.');
+
+				return null;
+			}
+
+			function datesTable(characters, banners, config) {
 				let data = new Array(characters.length);
+				let current = config.current;
 				for(let i = 0; i < data.length; i++) {
 					let row = new Array(banners.length + 1);
 					let character = row[0] = characters[i];
 					for(let j = 1, r = 0, p = undefined; j < row.length; j++) {
 						let banner = banners[j - 1];
-						if(banner.characters.includes(character.name)) {
+						let left = p ? banner.start.diff(banners[p].start, 'days') + 1 : undefined;
+						if(banner.characters.includes(character.name)) { // Character is on current banner.
+							if(current == 'delay') // Days since last re-run.
+								row[j] = -(left ?? 0.1);
+							else if(current == 'rerun') // Re-runs count.
+								row[j] = --r;
 							p = j;
-							row[j] = --r;
-						} else if(p) {
-							row[j] = p == j ? 0 : banner.start.diff(banners[p].start, 'days');
+						} else if(p)
+							row[j] = left;
+					}
+					data[i] = row;
+				}
+				return data;
+			}
+			function versionsTable(characters, banners, config) {
+				let data = new Array(characters.length);
+				let current = config.current;
+				for(let i = 0; i < data.length; i++) {
+					let row = new Array(banners.length + 1);
+					let character = row[0] = characters[i];
+					for(let j = 1, r = 0, c = 0, v = undefined; j < row.length; j++) {
+						let banner = banners[j - 1];
+						if(v !== undefined && banner.version != v) {
+							v = banner.version;
+							c++;
 						}
+						if(banner.characters.includes(character.name)) {  // Character is on current banner.
+							if(current == 'delay') // Versions since last re-run.
+								row[j] = -(c == 0 ? 0.1 : c);
+							else if(current == 'rerun') // Re-runs count.
+								row[j] = --r;
+							v = banner.version;
+							c = 0;
+						} else if(v !== undefined)
+							row[j] = c;
 					}
 					data[i] = row;
 				}
 				return data;
 			}
 			function update() {
-				this.set('data', table(_.sortBy(db.characters, order(this.get('sort'), db.banners)), db.banners));
+				let data = db.characters.filter(filter(this.get('excluded'), this.get('config')));
+				data = _.sortBy(data, order(this.get('config.sort'), db.banners));
+				let display = ({dates: datesTable, versions: versionsTable})[this.get('config.calendar')];
+				this.set('data', display(data, db.banners, this.get('config')));
 			}
+
+			let defaultConfig = {
+				toggle: false,
+
+				calendar: 'dates',
+				current: 'rerun',
+				fiveStars: true,
+				fourStars: true,
+				standard: false,
+				sort: {
+					type: 'alphabet',
+					grade: false,
+				},
+				highlight: {
+					enabled: false,
+					//row: undefined,
+					//column: undefined,
+				},
+			};
 
 			var ractive = new Ractive({
 				target: '#content',
@@ -151,11 +267,7 @@
 					excluded: ["Aloy", "Jean", "Mona", "Qiqi", "Diluc", "Keqing", "Tighnari", "Dehya", "Amber", "Kaeya", "Lisa"],
 					banners: db.banners,
 					data: {},
-					sort: {
-						type: 'alphabet',
-						grade: false,
-					},
-					highlight: false,
+					config: _.assignIn({...defaultConfig}, loadConfig()),
 				},
 				computed: {
 					years: function() {
@@ -164,14 +276,43 @@
 							.forEach(y => years[y] ? years[y]++ : years[y] = 1);
 						return years;
 					},
+					versions: function() {
+						let versions = {};
+						for(const v of this.get('banners').map(v => v.version)) {
+							let major = 'v' + v.split('.')[0];
+							versions[major] = (versions[major] ?? 0) + 1;
+						}
+						return versions;
+					},
 				},
 				onconfig: update,
 				observe: {
-					'sort.type sort.grade': {
-						handler: update,
+					'config.calendar config.current config.fiveStars config.fourStars config.standard config.sort.*': {
+						handler: function() { saveConfig(this.get('config')); update.call(this); },
+						init: false,
+					},
+					'config.highlight.*': {
+						handler: function() { saveConfig(this.get('config')); },
 						init: false,
 					},
 				},
+
+				progress: function(v) {
+					let alpha = this.get('config.calendar') == 'dates' ? v/365 : v/10;
+					return 'background-color: rgba(204, 0, 0, ' + alpha + ');';
+				},
+				/*hover: function(event) {
+					let target = event.target;
+					if(target && target.tagName.toLowerCase() == 'td')
+						this.set('highlight.column', target.cellIndex);
+				},*/
+				resetConfig: function() {
+					this.set('config', {...defaultConfig}, {deep: true});
+				},
+				hideConfig: function(event) {
+					if(this.get('config.toggle') && !event.target.closest('.header'))
+						this.set('config.toggle', false);
+				}
 			});
 		}
 	</script>
