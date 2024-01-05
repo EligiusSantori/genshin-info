@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Difference between two values.</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
+	<style type="text/css">
+	table { margin: 2em 3em; caption-side: top; }
+	caption { white-space: nowrap; }
+	input { width: 10em; }
+	</style>
+</head>
+<body>
+	<article id="content"></article>
+	<script id="layout" type="text/ractive">
+		<table>
+			<caption>Difference between two values.</caption>
+			<tr>
+				<th>A&nbsp;</th>
+				<td><input type="number" value="{{a}}" /></td>
+				<td>&nbsp;<samp>{{@this.display(a, b)}}</samp></td>
+			</tr>
+			<tr>
+				<th>B&nbsp;</th>
+				<td><input type="number" value="{{b}}" /></td>
+				<td>&nbsp;<samp>{{@this.display(b, a)}}</samp></td>
+			</tr>
+		</table>
+	</script>
+	<script type="text/javascript">
+		window.onload = function() {
+			var ractive = new Ractive({
+				target: '#content',
+				template: '#layout',
+				data: {
+					precision: 2,
+					a: null,
+					b: null,
+				},
+				computed: {
+					test: function() {
+						return 0;
+					},
+				},
+				display: function(a, b) {
+					if(!a || !b || Number.isNaN(a) || Number.isNaN(b))
+						return 'NaN';
+				
+					let f = 10 ** (this.get('precision'));
+					let d = Math.round((b / a - 1) * 100 * f) / f;
+					return (d > 0 ? '+' + d : d) + '% (' + Math.abs(Math.round(b - a)) + ')';
+				},
+			});
+		}
+	</script>
+</body>
+</html>

@@ -25,10 +25,10 @@ th img { max-height: var(--el-size); }
 
 @media screen and (min-width: 1900px) {
 	table tr:first-child th:nth-child(2) { width: 17%; }
-	table tr:first-child th:nth-child(3) { width: 18%; }
-	table tr:first-child th:nth-child(4) { width: 13%; }
-	table tr:first-child th:nth-child(5) { width: 15%; }
-	table tr:first-child th:nth-child(6) { width: 13%; }
+	table tr:first-child th:nth-child(3) { width: 17%; }
+	table tr:first-child th:nth-child(4) { width: 12%; }
+	table tr:first-child th:nth-child(5) { width: 12%; }
+	table tr:first-child th:nth-child(6) { width: 12%; }
 	table tr:first-child th:nth-child(7) { width: 12%; }
 	table tr:first-child th:nth-child(8) { width: 12%; }
 }
