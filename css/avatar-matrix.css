@@ -1,5 +1,5 @@
 :root {
-	--el-size: 90px;
+	--el-size: 80px;
 	--grade4-color: rgba(154,112,175,1);
 	--grade5-color: rgba(193,117,33,1);
 }
@@ -24,11 +24,11 @@ th img { max-height: var(--el-size); }
 .character.virtual { opacity: 0.4; }
 
 @media screen and (min-width: 1900px) {
-	table tr:first-child th:nth-child(2) { width: 16%; }
-	table tr:first-child th:nth-child(3) { width: 16%; }
-	table tr:first-child th:nth-child(4) { width: 16%; }
-	table tr:first-child th:nth-child(5) { width: 16%; }
-	table tr:first-child th:nth-child(6) { width: 11%; }
-	table tr:first-child th:nth-child(7) { width: 11%; }
-	table tr:first-child th:nth-child(8) { width: 11%; }
+	table tr:first-child th:nth-child(2) { width: 15%; }
+	table tr:first-child th:nth-child(3) { width: 15%; }
+	table tr:first-child th:nth-child(4) { width: 15%; }
+	table tr:first-child th:nth-child(5) { width: 15%; }
+	table tr:first-child th:nth-child(6) { width: 15%; }
+	table tr:first-child th:nth-child(7) { width: 15%; }
+	table tr:first-child th:nth-child(8) { width: 10%; }
 }
