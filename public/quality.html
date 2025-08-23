@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Artifact (regular combat) quality calculator.</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ractive"></script>
+	<style type="text/css">
+		#content { display: flex; flex-wrap: wrap; gap: 0 1.5em; justify-content: center; }
+		header { flex-basis: 100%; }
+		header h1 { margin: 1.5rem 0; font-size: x-large; text-align: center; }
+		header hr { margin-bottom: 2.5rem; }
+		th, td { padding: 0.25em 0;  text-align: center; border: 1px solid gray; }
+		th:first-child, td:first-child { padding: 0 3ch; background-color: #FFD; }
+		td { padding-left: 3ch; }
+		input[type=number] { width: 7ch; row; border: 0; outline: none; font-family: monospace; }
+		#artifact button { padding: 0.5em 1em; }
+		output { font-family: monospace; font-weight: bold; }
+		samp { display: block; margin-top: 1em; }
+	</style>
+</head>
+<body>
+	<div id="content"></div>
+	<script id="layout" type="text/ractive">
+		<header><h1>{{ @global.document.title }}</h1><hr /></header>
+		<aside>
+			<select id="set" size="6" value="{{ mode }}">
+				<option value="">Generic (2CR 3/4BD 3/8ER 3/8EM)</option>
+				<option value="EM=BD">VV/WT/GD/DW/TF/CW/FPL (EM = BD)</option>
+				<option value="ER=BD">Burst/ESF/NO (ER = BD)</option>
+				<option value="2CR=BD">Generic MH/OC (2CR = BD)</option>
+				<option value="1CR 0EM">Blizzard Strayer (1CR 0EM)</option>
+				<option value="0ER">Finale of the Deep Galleries (0ER)</option>
+			</select>
+		</aside>
+		<article>
+			<table id="artifact">
+				<tr>
+					<th>Quality</th>
+					<th>CD%</th><th>CR%</th><th>ATK%</th><th>DEF%</th><th>HP%</th><th>ER%</th><th>EM</th>
+					<th rowspan="2"><button on-click="@this.clear()">Clear</button></th>
+				</tr>
+				<tr>
+					<td><output>{{ isNaN(quality) ? '' : quality.toFixed(1) }}</output></td>
+					{{#artifact}}
+					<td><input type="number" value="{{cd}}" /></td>
+					<td><input type="number" value="{{cr}}" /></td>
+					<td><input type="number" value="{{atk}}" /></td>
+					<td><input type="number" value="{{def}}" /></td>
+					<td><input type="number" value="{{hp}}" /></td>
+					<td><input type="number" value="{{er}}" /></td>
+					<td><input type="number" step="20" value="{{em}}" /></td>
+					{{/artifact}}
+				</tr>
+			</table>
+			<samp>{{ formula }}</samp>
+		</article>
+	</script>
+	<script type="text/javascript">
+		window.onload = function() {
+			const AVG_CD = 6.6, AVG_CR = 3.3, AVG_ATK = 4.95, AVG_DEF = 6.2, AVG_HP = 4.95, AVG_ER = 5.5, AVG_EM = 19.5;
+			var ractive = new Ractive({
+				target: '#content',
+				template: '#layout',
+				data: {
+					mode: '',
+					quality: NaN,
+					formula: '', // TODO
+					artifact: { cd: null, cr: null, atk: null, def: null, hp: null, er: null, em: null },
+				},
+				// computed: {
+				// 	test: function() {
+				// 		return 0;
+				// 	},
+				// },
+				clear: function() {
+					this.set('artifact', { cd: null, cr: null, atk: null, def: null, hp: null, er: null, em: null });
+				},
+				calculate: function() {
+					let mode = this.get('mode') || '', a = this.get('artifact'), q = NaN;
+					if(_.some(a, _.isFinite))
+						a = _.mapValues(a, (v) => v||0);
+					else
+						mode = undefined;
+					switch(mode) {
+						case '':
+							q = a.cd + 2 * a.cr + 3/4 * (a.atk
+									+ a.def / AVG_DEF * AVG_ATK
+									+ a.hp / AVG_HP * AVG_ATK
+									+ a.er / AVG_ER * AVG_ATK / 2
+									+ a.em / AVG_EM * AVG_ATK / 2);
+						break;
+						case 'ER=BD':
+							q = a.cd + 2 * a.cr + 3/4 * (a.atk
+									+ a.def / AVG_DEF * AVG_ATK
+									+ a.hp / AVG_HP * AVG_ATK
+									+ a.er / AVG_ER * AVG_ATK * 1
+									+ a.em / AVG_EM * AVG_ATK / 2);
+						break;
+						case 'EM=BD':
+							q = a.cd + 2 * a.cr + 3/4 * (a.atk
+									+ a.def / AVG_DEF * AVG_ATK
+									+ a.hp / AVG_HP * AVG_ATK
+									+ a.er / AVG_ER * AVG_ATK / 2
+									+ a.em / AVG_EM * AVG_ATK * 1);
+						break;
+
+						case '2CR=BD':
+							q = a.cd + 3/4 * (2 * a.cr + a.atk
+									+ a.def / AVG_DEF * AVG_ATK
+									+ a.hp / AVG_HP * AVG_ATK
+									+ a.er / AVG_ER * AVG_ATK / 2
+									+ a.em / AVG_EM * AVG_ATK / 2);
+						break;
+						case '1CR 0EM':
+							q = a.cd + 1 * a.cr + 3/4 * (a.atk
+									+ a.def / AVG_DEF * AVG_ATK
+									+ a.hp / AVG_HP * AVG_ATK
+									+ a.er / AVG_ER * AVG_ATK / 2
+									+ a.em / AVG_EM * AVG_ATK * 0);
+						break;
+						case '0ER':
+							q = a.cd + 2 * a.cr + 3/4 * (a.atk
+									+ a.def / AVG_DEF * AVG_ATK
+									+ a.hp / AVG_HP * AVG_ATK
+									+ a.er / AVG_ER * AVG_ATK * 0
+									+ a.em / AVG_EM * AVG_ATK / 2);
+						break;
+					}
+					this.set('quality', q);
+				}
+				// display: function(a, b) {
+				// 	if(!a || !b || Number.isNaN(a) || Number.isNaN(b))
+				// 		return 'NaN';
+
+				// 	let f = 10 ** (this.get('precision'));
+				// 	let d = Math.round((b / a - 1) * 100 * f) / f;
+				// 	return (d > 0 ? '+' + d : d) + '% (' + Math.abs(Math.round(b - a)) + ')';
+				// },
+			});
+			ractive.observe('mode artifact.*', _.debounce(function() {
+				this.calculate();
+				//this.explain();
+			}, 50));
+		}
+	</script>
+</body>
+</html>
