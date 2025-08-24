@@ -52,7 +52,9 @@ var formula, permute;
 				return node;
 			}).evaluate();
 		},
-		render(expr) {
+		render(expr, simplify) {
+			if (simplify)
+				expr = math.simplify(expr);
 			return expr.toString();
 		},
 	}
