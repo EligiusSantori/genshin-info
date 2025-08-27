@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
-	<title>Artifact (regular combat) quality calculator.</title>
+	<title>Artifact (regular combat) quality calculator</title>
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous">
 	<style type="text/css">
 		#content { display: flex; flex-wrap: wrap; gap: 0 1.5em; justify-content: center; }
@@ -13,10 +13,13 @@
 		.input-group span { position: absolute; top: -0.75em; left: 0.5em; background: #FFF; padding: 0 0.25em; font-weight: 600; }
 		.input-group label { display: block; }
 		th, td { padding: 0.25em 0;  text-align: center; border: 1px solid gray; }
-		th:first-child, td:first-child { padding: 0 3ch; background-color: #FFD; }
-		td { padding-left: 3ch; }
-		input[type=number] { width: 7ch; row; border: 0; outline: none; font-family: monospace; }
-		#artifact button { padding: 0.5em 1em; }
+		.quality { background-color: #FFD; }
+		th.quality { padding: 0.25em 1.5em; }
+		.input td:not(.quality) { padding-left: 3ch; }
+		.coeff td { padding: 0; text-align: center; }
+		.coeff td:not(.quality) { color: gray; }
+		input[type=number] { width: 7ch; row; line-height: 1; border: 0; outline: none; font-family: monospace; }
+		#artifact button { padding: 0.25em 1em; }
 		output { font-family: monospace; font-weight: bold; }
 		samp { display: block; margin-top: 1em; }
 		/*.break { flex-basis: 100%; height: 0; }*/
@@ -25,6 +28,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/mathjs@14.6.0/lib/browser/math.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive@1.4.4/ractive.min.js"></script>
+	<script src="js/index.js"></script>
 	<script src="js/formula.js"></script>
 	<!-- <script>MathJax = { loader: { load: ['input/asciimath', 'output/chtml'] }, asciimath: { delimiters: [['​', '​']]} }</script> -->
 	<!-- <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4.0.0/startup.js"></script> -->
@@ -33,7 +37,7 @@
 <body>
 	<div id="content"></div>
 	<script id="layout" type="text/ractive">
-		<header><h1>{{ @global.document.title }}</h1><hr /></header>
+		<header><h1>{{ @global.document.title }}.</h1><hr /></header>
 		<aside>
 			{{#mode}}
 			<div class="input-group">
@@ -64,12 +68,22 @@
 		<article>
 			<table id="artifact">
 				<tr>
-					<th>Quality</th>
 					<th>CD%</th><th>CR%</th><th>ATK%</th><th>DEF%</th><th>HP%</th><th>ER%</th><th>EM</th>
-					<th rowspan="2"><button tabindex="-1" on-click="@this.clear()">Clear</button></th>
+					<th class="quality">Quality</th>
 				</tr>
-				<tr>
-					<td><output>{{ @this.format(expression ? formula.evaluate(expression) : undefined) }}</output></td>
+				<tr class="coeff">
+					<td>{{ factor.cd }}</td>
+					<td>{{ factor.cr }}</td>
+					<td colspan="3">{{ factor.bd }}</td>
+					<td>{{ factor.er }}</td>
+					<td>{{ factor.em }}</td>
+					<td class="quality" rowspan="2">
+						{{#with expression}}
+						<button tabindex="-1" on-click="@this.clear()">{{ @this.format(@global.formula.evaluate(.)) }}</button>
+						{{/with}}
+					</td>
+				</tr>
+				<tr class="input">
 					{{#artifact}}
 					<td><input type="number" step="6.6" autofocus value="{{cd}}" /></td>
 					<td><input type="number" step="3.3" value="{{cr}}" /></td>
@@ -81,10 +95,12 @@
 					{{/artifact}}
 				</tr>
 			</table>
-			<samp id="mathjax" no-as-mathjax="expression">&#8203;{{ expression ? formula.render(expression) : '' }}&#8203;</samp>
+			<samp id="mathjax" no-as-mathjax="expression">&#8203;{{ expression ? @global.formula.render(expression) : '' }}&#8203;</samp>
 		</article>
 		{{#if @this.constructor.DEBUG}}
 		<ol class="todo">
+			<li>https://docs.mathjax.org/en/v4.0/advanced/typeset.html</li>
+			<li>https://docs.mathjax.org/en/v4.0/web/typeset.html#MathJax.typesetClear</li>
 		</ol>
 		{{/if}}
 	</script>

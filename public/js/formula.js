@@ -1,4 +1,4 @@
-var formula, permute;
+var formula, permute, distribute4;
 (function() {
 	permute = function*(a) {
 		let c = Array(a.length).fill(0), i = 1, k, p;
@@ -18,6 +18,13 @@ var formula, permute;
 				++i;
 			}
 		}
+	}
+
+	distribute4 = function*(count) {
+		for(let a = 0; a <= count; a++)
+			for(let b = 0; b <= count - a; b++)
+				for(let c = 0; c <= count - a - b; c++)
+					yield [a, b, c, count - a - b - c];
 	}
 
 	function wrap(expr) {
@@ -45,7 +52,7 @@ var formula, permute;
 		factorial(n) { return new math.OperatorNode('!', 'factorial', [wrap(n)]); },
 		//permutations(a, b) { return this.function('permutations', a, b); },
 		permutations(a, b) { return this.divide(this.factorial(a), this.factorial(this.subtract(a, b))); },
-		evaluate(expr) {
+		evaluate(expr) { // Precision loss error fix.
 			return expr.cloneDeep().transform(function(node) {
 				if(node.isConstantNode && node.value % 1 !== 0)
 					node.value = math.fraction(node.value);
