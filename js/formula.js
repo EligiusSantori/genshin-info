@@ -39,6 +39,7 @@ var formula, permute, distribute4;
 		}
 	}
 
+	// new ConditionalNode(condition: Node, trueExpr: Node, falseExpr: Node)?
 	formula = {
 		constant(c) { return new math.ConstantNode(c); },
 		parenthesis(node) { return new math.ParenthesisNode(node); },
@@ -50,14 +51,18 @@ var formula, permute, distribute4;
 		divide(...args) { return args.reduce((a, v) => new math.OperatorNode('/', 'divide', [wrap(a), wrap(v)]))},
 		pow(a, b) { return new math.OperatorNode('^', 'pow', [wrap(a), wrap(b)]); },
 		factorial(n) { return new math.OperatorNode('!', 'factorial', [wrap(n)]); },
+		round(v, d) { return new math.FunctionNode('round', wrap(v), d); },
+		larger(a, b, e = false) {  return new math.OperatorNode(e ? '>=' : '>', e ? 'largerEq' : 'larger', [wrap(a), wrap(b)]) },
+		smaller(a, b, e = false) { return new math.OperatorNode(e ? '<=' : '<', e ? 'smallerEq' : 'smaller', [wrap(a), wrap(b)])  },
+		equal(a, b, i = false) { return new math.OperatorNode(i ? '!=' : '==', i ? 'unequal' : 'equal', [wrap(a), wrap(b)]) },
 		//permutations(a, b) { return this.function('permutations', a, b); },
 		permutations(a, b) { return this.divide(this.factorial(a), this.factorial(this.subtract(a, b))); },
-		evaluate(expr) { // Precision loss error fix.
+		evaluate(expr, scope) { // Precision loss error fix.
 			return expr.cloneDeep().transform(function(node) {
 				if(node.isConstantNode && node.value % 1 !== 0)
 					node.value = math.fraction(node.value);
 				return node;
-			}).evaluate();
+			}).evaluate(scope);
 		},
 		render(expr, simplify) {
 			if (simplify)

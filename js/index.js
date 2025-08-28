@@ -55,7 +55,9 @@ var db = {
 		{name: "FDG", image: "images/sets/Item_Deep_Gallery's_Echoing_Song.png"},
 		{name: "LNO", image: "images/sets/Item_Lightkeeper's_Pledge.png"},
 	],
-	artifacts: { minor: { average: { cd: 6.6, cr: 3.3, atk: 4.95, def: 6.2, hp: 4.95, er: 5.5, em: 19.5 } } },
+	artifact: {
+		minor: { average: { cd: 6.6, cr: 3.3, atk: 4.95, def: 6.2, hp: 4.95, er: 5.5, em: 19.5 } }
+	}, // TODO calculate.
 	characters: [
 		//{name:"Traveler", grade: 0, element:"", weapon:"", gender:"", city:"", image: "images/"},
 		{name:"Aino", grade: 4, element:"Hydro", weapon:"Claymore", gender:"Female", city:"Nod-Krai", image: "images/zzzzz-1753882519aino.png"},
