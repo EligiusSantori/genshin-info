@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Artifacts enchantment helper</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap-reboot.min.css" integrity="sha256-fjdlYyQyUwnf7m25DM18I325nnS2LbN7gdHPrq+OCyc=" crossorigin="anonymous" />
+	<link rel="stylesheet" href="css/enchant.css" />
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/mathjs@14.6.0/lib/browser/math.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ractive@1.4.4/ractive.min.js"></script>
+	<script src="js/formula.js"></script>
+	<script defer src="js/index.js"></script>
+	<script defer src="js/ruleset.js"></script>
+	<script defer src="js/ruleset/default.js"></script>
+	<script defer src="js/enchant.js"></script>
+</head>
+<body>
+	<div id="content"></div>
+	<script id="layout" type="text/ractive">
+		<nav>
+			<section class="sets">
+			{{#each sets: i}}
+				<label class="radio-image"><input type="radio" name="{{artifact.set}}" value="{{name}}" /><img src="{{image}}" alt="{{name}}" /></label>
+				{{#if i == sets.length / 2 - 1}}<br/>{{/if}}
+			{{/each}}
+			</section>
+			<section class="toggles">
+				<div class="radio-panel">
+				{{#each {'Flower & plume': 0, 'Sands': 2, 'Goblet': 3, 'Circlet': 4}: name}}
+					<label class="radio-pane"><input type="radio" name="{{artifact.slot}}" value="{{.}}" />{{name}}</label>
+				{{/each}}
+				</div>
+				<div class="radio-panel">
+				{{#each [0, 4, 8, 12, 16, 20]}}
+					<label class="radio-pane"><input type="radio" name="{{artifact.level}}" value="{{.}}" />+{{.}}</label>
+				{{/each}}
+				</div>
+			</section>
+		</nav>
+		<div class="flex-break"></div>
+		<article>
+			<table id="artifact" class="verdict-{{ @this.verdictAsClass(verdict, 'error', 'unclaimed', 'promising') }}">
+				<colgroup><col /><col /><col /><col /><col /><col /><col /><col class="quality" /></colgroup>
+				<tr><th>CD%</th><th>CR%</th><th>ATK%</th><th>DEF%</th><th>HP%</th><th>ER%</th><th>EM</th><th>Quality</th></tr>
+				<tr class="input">
+				{{#artifact}}
+					<td><input type="number" step="6.6" autofocus value="{{cd}}" /></td>
+					<td><input type="number" step="3.3" value="{{cr}}" /></td>
+					<td><input type="number" step="5" value="{{atk}}" /></td>
+					<td><input type="number" step="6.2" value="{{def}}" /></td>
+					<td><input type="number" step="5" value="{{hp}}" /></td>
+					<td><input type="number" step="5.5" value="{{er}}" /></td>
+					<td><input type="number" step="20" value="{{em}}" /></td>
+				{{/artifact}}
+					<td rowspan="2">
+					{{#with quality}}
+						<button tabindex="-1" on-click="@this.clear()">{{ @this.format(.) }}</button>
+					{{/with}}
+					</td>
+				</tr>
+				<tr class="coeff">
+					<td>× {{ @this.fraction(coeffs.cd) }}</td>
+					<td>× {{ @this.fraction(coeffs.cr) }}</td>
+					<td colspan="3">× {{ @this.fraction(coeffs.bd) }}</td>
+					<td>× {{ @this.fraction(coeffs.er) }}</td>
+					<td>× {{ @this.fraction(coeffs.em) }}</td>
+				</tr>
+			</table>
+			<ul class="messages">
+			{{#each messages}}
+				<li class="{{type}}">{{text}} {{artifact}}</li>
+			{{/each}}
+			</ul>
+		</article>
+		{{#if @this.constructor.DEBUG}}
+		<ol class="debug todo">
+
+		</ol>
+		{{/if}}
+	</script>
+	<script type="text/javascript">
+		//Ractive.DEBUG = /unminified/.test(function(){/*unminified*/})
+		Ractive.DEBUG = window.location.protocol.startsWith('file:');
+		window.onload = function() { ready('#content', '#layout'); }
+	</script>
+</body>
+</html>
