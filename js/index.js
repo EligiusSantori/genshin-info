@@ -55,9 +55,29 @@ var db = {
 		{name: "FDG", image: "images/sets/Item_Deep_Gallery's_Echoing_Song.png"},
 		{name: "LNO", image: "images/sets/Item_Lightkeeper's_Pledge.png"},
 	],
-	artifact: {
-		minor: { average: { cd: 6.6, cr: 3.3, atk: 4.95, def: 6.2, hp: 4.95, er: 5.5, em: 19.5 } }
-	}, // TODO calculate.
+	chances: {
+		artifact: {
+			major: [
+				{ 'hp': 1, },
+				{ 'atk': 1, },
+				{ 'hp%': 0.2668, 'atk%': 0.2666, 'def%': 0.2666, 'er%': 0.1, 'em': 0.1 },
+				{ 'hp%': 0.19175, 'atk%': 0.19175, 'def%': 0.1915, 'pd%': 0.05, 'ed%': 0.05, 'em': 0.025 },
+				{ 'hp%': 0.22, 'atk%': 0.22, 'def%': 0.22, 'cr%': 0.1, 'cd%': 0.1, 'hb%': 0.1, 'em': 0.04 },
+			],
+			rolls: { // Strictly sorted.
+					"cd%": [5.44, 6.22, 6.99, 7.77],
+					"cr%": [2.72, 3.11, 3.50, 3.89],
+					"atk": [13.62, 15.56, 17.51, 19.45],
+					"def": [16.20, 18.52, 20.83, 23.15],
+					"hp": [209.13, 239.00, 268.88, 298.75],
+					"atk%": [4.08, 4.66, 5.25, 5.83],
+					"def%": [5.10, 5.83, 6.56, 7.29],
+					"hp%": [4.08, 4.66, 5.25, 5.83],
+					"er%": [4.53, 5.18, 5.83, 6.48],
+					"em": [16.32, 18.65, 20.98, 23.31],
+			}
+		}
+	},
 	characters: [
 		//{name:"Traveler", grade: 0, element:"", weapon:"", gender:"", city:"", image: "images/"},
 		{name:"Aino", grade: 4, element:"Hydro", weapon:"Claymore", gender:"Female", city:"Nod-Krai", image: "images/zzzzz-1753882519aino.png"},
