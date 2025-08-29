@@ -18,63 +18,115 @@
 	<div id="content"></div>
 	<script id="layout" type="text/ractive">
 		<nav>
-			<section class="sets">
+			<section class="sets radio-panel">
 			{{#each sets: i}}
 				<label class="radio-image"><input type="radio" name="{{artifact.set}}" value="{{name}}" /><img src="{{image}}" alt="{{name}}" /></label>
-				{{#if i == sets.length / 2 - 1}}<br/>{{/if}}
+				{{#if i == sets.length / 2 - 1}}<div  class="flex-break"></div>{{/if}}
 			{{/each}}
 			</section>
-			<section class="toggles">
-				<div class="radio-panel">
-				{{#each {'Flower & plume': 0, 'Sands': 2, 'Goblet': 3, 'Circlet': 4}: name}}
-					<label class="radio-pane"><input type="radio" name="{{artifact.slot}}" value="{{.}}" />{{name}}</label>
-				{{/each}}
-				</div>
-				<div class="radio-panel">
-				{{#each [0, 4, 8, 12, 16, 20]}}
-					<label class="radio-pane"><input type="radio" name="{{artifact.level}}" value="{{.}}" />+{{.}}</label>
-				{{/each}}
-				</div>
-			</section>
+
 		</nav>
-		<div class="flex-break"></div>
+		<hr class="flex-break" />
+		<aside class="summary">
+		{{#if !@global._.isEmpty(summary)}}
+			<table>
+				<tr><th colspan="2">Summary</th></tr>
+				{{#with summary.rolls}}<tr><th>Rolls</th><td>{{.}}</td></tr>{{/with}}
+				{{#with summary.rules}}<tr><th>Rules</th><td>{{.}}</td></tr>{{/with}}
+				{{#with summary.forecasts}}<tr><th>Variants</th><td>{{.}}</td></tr>{{/with}}
+			</table>
+		{{/if}}
+		</aside>
 		<article>
 			<table id="artifact" class="verdict-{{ @this.verdictAsClass(verdict, 'error', 'unclaimed', 'promising') }}">
-				<colgroup><col /><col /><col /><col /><col /><col /><col /><col class="quality" /></colgroup>
-				<tr><th>CD%</th><th>CR%</th><th>ATK%</th><th>DEF%</th><th>HP%</th><th>ER%</th><th>EM</th><th>Quality</th></tr>
-				<tr class="input">
-				{{#artifact}}
-					<td><input type="number" step="6.6" autofocus value="{{cd}}" /></td>
-					<td><input type="number" step="3.3" value="{{cr}}" /></td>
-					<td><input type="number" step="5" value="{{atk}}" /></td>
-					<td><input type="number" step="6.2" value="{{def}}" /></td>
-					<td><input type="number" step="5" value="{{hp}}" /></td>
-					<td><input type="number" step="5.5" value="{{er}}" /></td>
-					<td><input type="number" step="20" value="{{em}}" /></td>
-				{{/artifact}}
-					<td rowspan="2">
-					{{#with quality}}
-						<button tabindex="-1" on-click="@this.clear()">{{ @this.format(.) }}</button>
-					{{/with}}
+				<tr class="level-row">
+					<th colspan="3">Level<span class="note" title="For 3-stat artifacts use level ≥ 4 since v6.0">𝐢</span></th>
+					<td>{{artifact.level}}</td>
+					<td colspan="2"><input type="range" min="0" max="20" step="4" value="{{artifact.level}}" /></td>
+				</tr>
+				<tr class="column-row">
+					<td rowspan="9">
+						<div class="radio-panel">
+							<label class="radio-icon"><input type="radio" name="{{artifact.slot}}" value="0" />
+								<img alt="Flower" src="images/Icon_Flower_of_Life.png" /><br /></label>
+							<label class="radio-icon"><input type="radio" name="{{artifact.slot}}" value="1" />
+								<img alt="Plume" src="images/Icon_Plume_of_Death.png" /></label>
+							<label class="radio-icon"><input type="radio" name="{{artifact.slot}}" value="2" />
+								<img alt="Sands" src="images/Icon_Sands_of_Eon.png" /></label>
+							<label class="radio-icon"><input type="radio" name="{{artifact.slot}}" value="3" />
+								<img alt="Goblet" src="images/Icon_Goblet_of_Eonothem.png" /></label>
+							<label class="radio-icon"><input type="radio" name="{{artifact.slot}}" value="4" />
+								<img alt="Circlet" src="images/Icon_Circlet_of_Logos.png" /></label>
+						</div>
+					</td>
+					<td rowspan="9">
+						<div class="radio-panel">
+						{{#each affixes: name}}
+							<label class="radio-pane"><input type="radio" name="{{artifact.affix}}" value="{{name}}" />{{ . }}</label>
+						{{/each}}
+						</div>
 					</td>
 				</tr>
-				<tr class="coeff">
-					<td>× {{ @this.fraction(coeffs.cd) }}</td>
-					<td>× {{ @this.fraction(coeffs.cr) }}</td>
-					<td colspan="3">× {{ @this.fraction(coeffs.bd) }}</td>
-					<td>× {{ @this.fraction(coeffs.er) }}</td>
-					<td>× {{ @this.fraction(coeffs.em) }}</td>
+				{{#each stats: name}}
+				<tr class="stat-row {{name == artifact.affix && 'disabled'}}">
+					<th>{{title}}</th>
+					<td><input type="number" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name]}}"
+						disabled="{{name == artifact.affix}}" /></td>
+					<td><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name] || 0}}"
+						disabled="{{name == artifact.affix}}" twoway="0" on-input="['statChange', name]" /></td>
+					{{#unless name == 'def' || name == 'hp'}}
+					<td class="coeff" rowspan="{{ name == 'atk' ? 3 : 1 }}">×{{ @this.fraction(coeffs[name] || coeffs.bd) }}</td>
+					{{/unless}}
+				</tr>
+				{{/each}}
+				<tr class="quality-row">
+					<th colspan="2">Quality</th>
+					<td colspan="2"><button tabindex="-1" on-click="@this.clear()">{{{ @this.decimal(quality) || '&nbsp;' }}}</button></td>
 				</tr>
 			</table>
-			<ul class="messages">
-			{{#each messages}}
-				<li class="{{type}}">{{text}} {{artifact}}</li>
-			{{/each}}
-			</ul>
 		</article>
+		<aside class="display">
+			<table class="messages">
+			{{#if artifact && messages.length > 0}}
+				<tr>
+					<th></th>
+				{{#each @this.filled(4)}}
+					<td>{{.}}</td>
+				{{/each}}
+				</tr>
+			{{/if}}
+			{{#each messages}}
+				<tr class="{{type}}">
+					<th colspan="{{type == 'error' ? 5 : 1}}">
+						{{text}}
+						{{#with formula}}<span class="note" title="{{.}}">𝐢</span>{{/with}}
+					</th>
+				{{#each artifact ? artifact.toDisplay() : []}}
+					<td>{{.}}</td>
+				{{/each}}
+				</tr>
+			{{/each}}
+			</table>
+		</aside>
 		{{#if @this.constructor.DEBUG}}
+		<samp class="debug" style="bottom: var(--doc-margin-h); right: var(--doc-margin-w);">{{ JSON.stringify(artifact.valid()) }}</samp>
 		<ol class="debug todo">
+			<li>! Добавить уже правила.</li>
+			<li>...</li>
 
+			<li>Сохранение переключателей в local storage (должна быть поддержка в ractivejs)</li>
+			<li>Добавить красивую background-анимацию, лучше в стиле Genshin.</li>
+			<li>Сделать красивые слайдеры.</li>
+			<li>Опции: 1. примерные/точные слайдеры; 1. отображение формул/названий;</li>
+
+			<li>Увеличение ползунка параметра должно увеличивать уровень и так-же уменьшение уровня должно срезать параметры?</li>
+			<li>Подсвечивать красным уровень, если он не сходится с количеством параметров или значение нереальное.</li>
+			<li>OCR в реальном времени (удобнее) или с clipboard (безопаснее)?</li>
+			<li>Приоритеты: артефакт нужен набору, может пригодиться и нужен в off-set?</li>
+			<li>Отображение Q артефактов на графике?</li>
+			<li>Отображать 3 или 4 статовый артефакт в summary?</li>
+			<li>Переделать скрипты на модули (https://www.w3schools.com/js/js_modules.asp)</li>
+			<li>input range value debounce?</li>
 		</ol>
 		{{/if}}
 	</script>
