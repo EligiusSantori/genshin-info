@@ -55,6 +55,9 @@ var formula, permute, distribute4;
 		larger(a, b, e = false) {  return new math.OperatorNode(e ? '>=' : '>', e ? 'largerEq' : 'larger', [wrap(a), wrap(b)]) },
 		smaller(a, b, e = false) { return new math.OperatorNode(e ? '<=' : '<', e ? 'smallerEq' : 'smaller', [wrap(a), wrap(b)])  },
 		equal(a, b, i = false) { return new math.OperatorNode(i ? '!=' : '==', i ? 'unequal' : 'equal', [wrap(a), wrap(b)]) },
+		largerEq(a, b) { return this.larger(a, b, true) },
+		smallerEq(a, b) { return this.smaller(a, b, true) },
+		unequal(a, b) { return this.equal(a, b, true) },
 		//permutations(a, b) { return this.function('permutations', a, b); },
 		permutations(a, b) { return this.divide(this.factorial(a), this.factorial(this.subtract(a, b))); },
 		evaluate(expr, scope) { // Precision loss error fix.

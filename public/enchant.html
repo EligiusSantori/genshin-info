@@ -40,7 +40,7 @@
 		<article>
 			<table id="artifact" class="verdict-{{ @this.verdictAsClass(verdict, 'error', 'unclaimed', 'promising') }}">
 				<tr class="level-row">
-					<th colspan="3">Level<span class="note" title="For 3-stat artifacts use level ≥ 4 since v6.0">𝐢</span></th>
+					<th colspan="3">Level<span class="note" tooltip="For 3-stat artifacts use level ≥ 4 since v6.0">𝐢</span></th>
 					<td>{{artifact.level}}</td>
 					<td colspan="2"><input type="range" min="0" max="20" step="4" value="{{artifact.level}}" /></td>
 				</tr>
@@ -98,8 +98,8 @@
 			{{#each messages}}
 				<tr class="{{type}}">
 					<th colspan="{{type == 'error' ? 5 : 1}}">
-						{{text}}
-						{{#with formula}}<span class="note" title="{{.}}">𝐢</span>{{/with}}
+						{{{text}}}
+						{{#with formula}}<span class="note" tooltip="{{.}}">𝐢</span>{{/with}}
 					</th>
 				{{#each artifact ? artifact.toDisplay() : []}}
 					<td>{{.}}</td>
@@ -111,13 +111,20 @@
 		{{#if @this.constructor.DEBUG}}
 		<samp class="debug" style="bottom: var(--doc-margin-h); right: var(--doc-margin-w);">{{ JSON.stringify(artifact.valid()) }}</samp>
 		<ol class="debug todo">
-			<li>! Добавить уже правила.</li>
-			<li>...</li>
+			<li>Правила: BD circlets</li>
+			<li>Правила: shared ATK/ER/EM/CR sets rules</li>
+			<li>Правила: non-combat rules</li>
+			<li>Добавить точные affixes для goblets.</li>
+			<li>Правила: in-set goblets &lt;- ED..., PD, BD</li>
+			<li>Правила: in-set healing circlets</li>
+			<li>Правила: исключения из правил</li>
+			<li>Добавить точные coeffs для sets (нужен объект Coeffs)? Тогда bd удаляем, но от чего масштабировать CR и EM в некоторых наборах?</li>
+			<li>Правила: Q >= 40 for non-mandatory hp & def flowers/plumes?</li>
+			<li>Правила Q: ATK > HP > DEF для sands в обычных наборах?</li>
 
 			<li>Сохранение переключателей в local storage (должна быть поддержка в ractivejs)</li>
-			<li>Добавить красивую background-анимацию, лучше в стиле Genshin.</li>
-			<li>Сделать красивые слайдеры.</li>
-			<li>Опции: 1. примерные/точные слайдеры; 1. отображение формул/названий;</li>
+			<li>Опции: 1. примерные/точные слайдеры; 2. включение и выключение local storage;</li>
+			<li>Добавить красивую background-анимацию (лучше в стиле Genshin), сделать красивые слайдеры+риски и анимации к tooltip.</li>
 
 			<li>Увеличение ползунка параметра должно увеличивать уровень и так-же уменьшение уровня должно срезать параметры?</li>
 			<li>Подсвечивать красным уровень, если он не сходится с количеством параметров или значение нереальное.</li>
@@ -126,6 +133,7 @@
 			<li>Отображение Q артефактов на графике?</li>
 			<li>Отображать 3 или 4 статовый артефакт в summary?</li>
 			<li>Переделать скрипты на модули (https://www.w3schools.com/js/js_modules.asp)</li>
+			<li>Добавить формулу расчёта основной quality в tooltip.</li>
 			<li>input range value debounce?</li>
 		</ol>
 		{{/if}}

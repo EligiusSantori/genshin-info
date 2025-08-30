@@ -45,9 +45,21 @@ ul, ol { padding-left: 1em; }
 	display: inline-block; width: 1.2em; height: 1.2em;
 	position: absolute; top: 0.33em; right: 0.33em;
 	border: thin solid var(--border-normal-color); border-radius: 50%;
-	cursor: help; color: var(--fg-disabled-color);
+	cursor: default; /*cursor: help;*/
+	color: var(--fg-disabled-color);
 	line-height: 1.1; text-align: center; font-size: 70%;
 	/*text-decoration: wavy underline;*/
+}
+.note:hover::after {
+	content: attr(tooltip);
+	position: absolute; top: -2em; left: 1em;
+	padding: 0.5em;
+	border-radius: 0.5em;
+	background: black;
+	color: var(--fg-normal-color);
+	white-space: pre;
+	font-size: medium;
+	/*word-break: keep-all;*/
 }
 
 #content { display: flex; flex-wrap: wrap; gap: 0 1.5rem; justify-content: center; }
@@ -129,12 +141,13 @@ nav+hr { margin: 2.5rem auto; }
 	th, td { padding: 0 0.5em; border: none thin var(--border-normal-color); border-bottom-style: solid; font-weight: normal; }
 	td { border-left-style: solid; color: var(--fg-disabled-color); font-size: small; text-align: right; }
 	tr:not(:first-of-type) th { padding-right: 2em; }
-	.rule th::after { content: '.'; }
+	/*.rule th::after { content: '.'; }*/
 	.note { top: 20%; }
+	.note::after { font-family: monospace; }
 }
 /*.messages { color: var(--fg-unclaimed-color); }*/
 .messages>.rule { color: var(--fg-promising-color); }
 .messages>.error { color: var(--fg-error-color); }
 .messages:empty { display: none; }
-.debug { position: fixed; z-index: -1; color: #666; font-size: small; }
+.debug { position: fixed; z-index: -1; color: rgba(255, 255, 255, 0.15); font-size: small; }
 .todo { bottom: var(--doc-margin-h); left: var(--doc-margin-w); margin: 0; }
