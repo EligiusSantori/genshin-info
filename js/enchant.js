@@ -99,7 +99,7 @@ function ready(target, template) {
 			for(const f of variants)
 				for(const name in todo) {
 					let rule = todo[name], is = undefined, temp;
-					if(_.isBoolean(temp = _.isFunction(rule) ? rule(f, c) : null))
+					if(_.isBoolean(temp = _.isFunction(rule) ? rule.call(ruleset, f, c) : null))
 						is = temp; // fn() => is.
 					else if(temp) // fn() => formula.
 						rule = temp;

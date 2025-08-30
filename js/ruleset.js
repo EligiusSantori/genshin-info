@@ -18,6 +18,16 @@ class Artifact {
 			a.affix = null;
 		return a;
 	}
+	flower_plume() { return this.slot < 2; }
+	sands() { return this.slot == 2; }
+	goblet() { return this.slot == 3; }
+	circlet() { return this.slot == 4; }
+	affixIn(...affixes) {
+		return _.includes(_.reduce(affixes, (r, v) => {
+			v == 'bd' ? r.push('hp', 'atk', 'def') : r.push(v);
+			return r;
+		}, []), this.affix);
+	}
 
 	getStats(predicate = _.identity) {
 		return _.mapValues(this.constructor.average, (v, k) => predicate(this[k], k));
@@ -58,14 +68,12 @@ class Ruleset {
 		Object.assign(this, { coeffs, sets });
 		this.rules = this.#parseRules(rules);
 	}
-
 	#parseRules(rules) {
 		return _.mapValues(rules, r => _.isString(r) ? math.parse(r) : r);
   }
 
-	quality() {
-		return this.constructor.quality(...arguments);
-	}
+	quality() { return this.constructor.quality(...arguments); }
+	setless(current, ...coeffs) { return _.assign({ }, current, _.pick(this.getCoeffs(), coeffs)) };
 
 	getCoeffs(set = null) {
 		return _.defaults({ }, this.sets?.[set]?.coeffs, this.coeffs);
@@ -78,7 +86,6 @@ class Ruleset {
 			_.set(this, `coeffs.${name}`, value);
 		return this;
 	}
-
 	getRules(set = null) {
 		return _.defaults({ }, this.sets?.[set]?.rules, this.rules);
 	}
