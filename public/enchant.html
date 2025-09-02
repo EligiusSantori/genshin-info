@@ -74,9 +74,7 @@
 						disabled="{{name == artifact.affix}}" /></td>
 					<td><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name] || 0}}"
 						disabled="{{name == artifact.affix}}" twoway="0" on-input="['statChange', name]" /></td>
-					{{#unless name == 'def' || name == 'hp'}}
-					<td class="coeff" rowspan="{{ name == 'atk' ? 3 : 1 }}">×{{ @this.fraction(coeffs[name] || coeffs.bd) }}</td>
-					{{/unless}}
+					<td class="coeff">×{{ @this.fraction(@global._.get(coeffs, name, coeffs.bd)) }}</td>
 				</tr>
 				{{/each}}
 				<tr class="quality-row">
@@ -109,33 +107,7 @@
 			</table>
 		</aside>
 		{{#if @this.constructor.DEBUG}}
-		<samp class="debug" style="bottom: var(--doc-margin-h); right: var(--doc-margin-w);">{{ JSON.stringify(artifact.valid()) }}</samp>
-		<ol class="debug todo">
-			<li>Правила: BD circlets</li>
-			<li>Правила: shared ATK/ER/EM/CR sets rules</li>
-			<li>Правила: non-combat rules</li>
-			<li>Добавить точные affixes для goblets.</li>
-			<li>Правила: in-set goblets &lt;- ED..., PD, BD</li>
-			<li>Правила: in-set healing circlets</li>
-			<li>Правила: исключения из правил</li>
-			<li>Добавить точные coeffs для sets (нужен объект Coeffs)? Тогда bd удаляем, но от чего масштабировать CR и EM в некоторых наборах?</li>
-			<li>Правила: Q >= 40 for non-mandatory hp & def flowers/plumes?</li>
-			<li>Правила Q: ATK > HP > DEF для sands в обычных наборах?</li>
-
-			<li>Сохранение переключателей в local storage (должна быть поддержка в ractivejs)</li>
-			<li>Опции: 1. примерные/точные слайдеры; 2. включение и выключение local storage;</li>
-			<li>Добавить красивую background-анимацию (лучше в стиле Genshin), сделать красивые слайдеры+риски и анимации к tooltip.</li>
-
-			<li>Увеличение ползунка параметра должно увеличивать уровень и так-же уменьшение уровня должно срезать параметры?</li>
-			<li>Подсвечивать красным уровень, если он не сходится с количеством параметров или значение нереальное.</li>
-			<li>OCR в реальном времени (удобнее) или с clipboard (безопаснее)?</li>
-			<li>Приоритеты: артефакт нужен набору, может пригодиться и нужен в off-set?</li>
-			<li>Отображение Q артефактов на графике?</li>
-			<li>Отображать 3 или 4 статовый артефакт в summary?</li>
-			<li>Переделать скрипты на модули (https://www.w3schools.com/js/js_modules.asp)</li>
-			<li>Добавить формулу расчёта основной quality в tooltip.</li>
-			<li>input range value debounce?</li>
-		</ol>
+		<samp class="debug" style="bottom: 0.33em; right: 0.5em;">{{ JSON.stringify(artifact.valid()) }}</samp>
 		{{/if}}
 	</script>
 	<script type="text/javascript">

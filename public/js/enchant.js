@@ -28,9 +28,16 @@ function statsDisplay(rolls, average, approx = false) {
 	}));
 }
 
-function affixesDisplay(chances, slot) {
-	return (slot = parseInt(slot)) < 2 ? { 'hp_atk': 'HP/ATK' }
-		: Object.fromEntries(_.map(chances[slot], (v, k) => [_.kebabCase(k), _.toUpper(k)]));
+function affixesDisplay(slot, chances, elements) {
+	if ((slot = parseInt(slot)) < 2)
+		return { 'hp_atk': 'HP/ATK' };
+	let affixes = Object.fromEntries(_.map(chances[slot], (v, k) => [_.kebabCase(k), _.toUpper(k)]));
+	if(slot == 3) {
+		_.each(elements, v => affixes[_.kebabCase(v.name)] = v.name);
+		affixes['pd'] = 'Physical';
+		delete affixes.ed;
+	}
+	return affixes;
 }
 
 function ready(target, template) {
@@ -38,7 +45,7 @@ function ready(target, template) {
 		target: target,
 		template: template,
 		data: {
-			artifact: _.set(new Artifact(), 'level', Artifact.maxLevel),
+			artifact: _.set(new Artifact(), 'level', 20),
 			coeffs: ruleset.coeffs,
 			quality: null,
 			verdict: undefined,
@@ -49,8 +56,8 @@ function ready(target, template) {
 			sets: [...this.setsChunk()],
 		},
 		computed: {
-			stats() { return statsDisplay(db.chances.artifact.rolls, Artifact.average, this.get('approx')); },
-			affixes() { return affixesDisplay(db.chances.artifact.major, this.get('artifact.slot')); },
+			stats() { return statsDisplay(db.stats.artifact.rolls, Artifact.average, this.get('approx')); },
+			affixes() { return affixesDisplay(this.get('artifact.slot'), db.stats.artifact.major, db.elements); },
 		},
 		on: {
 			statChange(context, name) { this.set('artifact.' + name, context.node.value); },
@@ -92,7 +99,7 @@ function ready(target, template) {
 				this.message("Artifact can't have more than 4 stats.", -Infinity);
 			if(this.get('verdict') < 0) return; // There are critical errors.
 
-			_.reduce(Artifact.average, (_, v, k) => a[k] = a[k] > 0 ? parseFloat(a[k]) : 0, null); // Default values for scope.
+			_.reduce(Artifact.average, (_, v, k) => a[k] = a[k] > 0 ? a[k] : 0, null); // Default values for scope.
 			let rolls = Math.floor(a.level / 4), left = 5 - rolls,
 				variants = forecast(a, Artifact.average, left), todo = ruleset.getRules(a.set);
 			this.summary('rolls', `${rolls} / ${left}`).summary('forecasts', variants.length).summary('rules', _.size(todo));
