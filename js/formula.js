@@ -52,6 +52,8 @@ var formula, permute, distribute4;
 		pow(a, b) { return new math.OperatorNode('^', 'pow', [wrap(a), wrap(b)]); },
 		factorial(n) { return new math.OperatorNode('!', 'factorial', [wrap(n)]); },
 		round(v, d) { return new math.FunctionNode('round', wrap(v), d); },
+		min(...args) { return new math.FunctionNode('min', args.map(wrap)); },
+		max(...args) { return new math.FunctionNode('max', args.map(wrap)); },
 		larger(a, b, e = false) {  return new math.OperatorNode(e ? '>=' : '>', e ? 'largerEq' : 'larger', [wrap(a), wrap(b)]) },
 		smaller(a, b, e = false) { return new math.OperatorNode(e ? '<=' : '<', e ? 'smallerEq' : 'smaller', [wrap(a), wrap(b)])  },
 		equal(a, b, i = false) { return new math.OperatorNode(i ? '!=' : '==', i ? 'unequal' : 'equal', [wrap(a), wrap(b)]) },

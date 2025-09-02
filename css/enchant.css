@@ -5,8 +5,6 @@
 	--fg-promising-color: #0A3;
 	--fg-unclaimed-color: #36E;
 	--fg-error-color: #c30;
-	--doc-margin-w: 0.65rem;
-	--doc-margin-h: 0.15rem;
 	--border-normal-color: #666;
 	--toggle-fade-time: 0.15s;
 }
@@ -150,4 +148,3 @@ nav+hr { margin: 2.5rem auto; }
 .messages>.error { color: var(--fg-error-color); }
 .messages:empty { display: none; }
 .debug { position: fixed; z-index: -1; color: rgba(255, 255, 255, 0.15); font-size: small; }
-.todo { bottom: var(--doc-margin-h); left: var(--doc-margin-w); margin: 0; }
