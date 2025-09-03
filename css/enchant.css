@@ -139,6 +139,7 @@ nav+hr { margin: 2.5rem auto; }
 	th, td { padding: 0 0.5em; border: none thin var(--border-normal-color); border-bottom-style: solid; font-weight: normal; }
 	td { border-left-style: solid; color: var(--fg-disabled-color); font-size: small; text-align: right; }
 	tr:not(:first-of-type) th { padding-right: 2em; }
+	p { display: inline; margin: 0; padding: 0; }
 	/*.rule th::after { content: '.'; }*/
 	.note { top: 20%; }
 	.note::after { font-family: monospace; }

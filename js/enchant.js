@@ -34,8 +34,9 @@ function affixesDisplay(slot, chances, elements) {
 	let affixes = Object.fromEntries(_.map(chances[slot], (v, k) => [_.kebabCase(k), _.toUpper(k)]));
 	if(slot == 3) {
 		_.each(elements, v => affixes[_.kebabCase(v.name)] = v.name);
-		affixes['pd'] = 'Physical';
 		delete affixes.ed;
+		delete affixes.pd;
+		affixes['pd'] = 'Physical';
 	}
 	return affixes;
 }
@@ -71,7 +72,7 @@ function ready(target, template) {
 		filled(max) {
 			const a = this.get('artifact');
 			return _.reduce(this.get('stats'), (r, v, k) => {
-				if(a[k] > 0 && (_.isNil(max) || max-- > 0)) r[k] = v.title;
+				if(a[k] > 0 && !a.affixIn(k) && (_.isNil(max) || max-- > 0)) r[k] = v.title;
 				return r;
 			}, { })
 		},

@@ -1,7 +1,7 @@
 class Artifact {
 	static average = Object.fromEntries(_.map(db.stats.artifact.rolls, (v, k) => [_.kebabCase(k), _.mean(v)]));
 	static elements = _.map(db.elements, v => _.kebabCase(v.name));
-	static expand(stat) { return { bd: ['hp', 'atk', 'def'], ed: this.elements }[stat] || [stat]; }
+	static expand(stat) { return { bd: ['hp', 'atk', 'def', stat], ed: [...this.elements, stat], pd: ['physical', stat] }[stat] || [stat]; }
 
 	constructor() {
 		[this.set, this.slot, this.affix, this.level] = [null, 0, null, 0];
@@ -45,19 +45,19 @@ class Artifact {
 }
 
 class Ruleset {
-	static #defaults(object, value, ...keys) {
+	static defaults(object, value, ...keys) {
 		const result = keys.reduce((r, k) => _.isNil(r) && !_.isNil(object[k]) ? object[k] : r, null);
 		return _.isNil(result) ? value : result;
 	}
 	static quality(artifact, coeffs, precision) {
 		const average = Artifact.average, q = 0
-			+ this.#defaults(coeffs, 1, 'cd') * (artifact.cd || 0)
-			+ this.#defaults(coeffs, 1, 'cr') * (artifact.cr || 0)
-			+ this.#defaults(coeffs, 1, 'atk', 'bd') * (artifact.atk || 0)
-			+ this.#defaults(coeffs, 1, 'def', 'bd') * ((artifact.def || 0) / average.def * average.atk)
-			+ this.#defaults(coeffs, 1, 'hp', 'bd') * (artifact.hp || 0)
-			+ this.#defaults(coeffs, 1, 'er') * (artifact.er || 0)
-			+ this.#defaults(coeffs, 1, 'em') * (artifact.em || 0) / average.em * average.cd;
+			+ this.defaults(coeffs, 1, 'cd') * (artifact.cd || 0)
+			+ this.defaults(coeffs, 1, 'cr') * (artifact.cr || 0)
+			+ this.defaults(coeffs, 1, 'atk', 'bd') * (artifact.atk || 0)
+			+ this.defaults(coeffs, 1, 'def', 'bd') * ((artifact.def || 0) / average.def * average.atk)
+			+ this.defaults(coeffs, 1, 'hp', 'bd') * (artifact.hp || 0)
+			+ this.defaults(coeffs, 1, 'er') * (artifact.er || 0)
+			+ this.defaults(coeffs, 1, 'em') * (artifact.em || 0) / average.em * average.cd;
 		return _.isNil(precision) ? q : _.round(q, precision);
 	}
 	static average(multipliers, precision) {
@@ -65,6 +65,15 @@ class Ruleset {
 			multipliers = _.mapValues(Artifact.average, () => 1);
 		return _.isEmpty(multipliers) ? Artifact.average : _.mapValues(multipliers, (m, k) =>
 			_.isNil(precision) ? m * Artifact.average[k] : _.round(m * Artifact.average[k], precision));
+	}
+	static rollsSumMax(stats, sum, max, mergeCV = true, useFormula = true) {
+		sum = _.transform(!_.isArray(sum) && !_.isNil(sum) ? [sum] : (sum || []), (r, v) => r.push(...Artifact.expand(v)), []);
+		max = _.transform(!_.isArray(max) && !_.isNil(max) ? [max] : (max || []), (r, v) => r.push(...Artifact.expand(v)), []);
+		const [fnSum, fnMax] = useFormula ? [formula.add, formula.max] : [math.add, math.max];
+		if(mergeCV) stats = { ..._.omit(stats, ['cd', 'cr']), cv: (stats.cd || 0) + (stats.cr || 0) };
+		let [toSum, toMax, rest] = partsByKeyIntoArray(stats, sum, max);
+		[toSum, toMax] = [_.isEmpty(sum) ? rest : toSum, _.isEmpty(max) ? rest : toMax];
+		return [toSum.length > 1 ? fnSum(...toSum) : (toSum[0] || 0), toMax.length > 1 ? fnMax(...toMax) : (toMax[0] || 0)];
 	}
 	static scope(artifact, coeffs) {
 		let average = this.average(), rolls = artifact.getRolls(),
@@ -92,12 +101,13 @@ class Ruleset {
 	quality(artifact, coeffs, precision) {
 		return this.constructor.quality(artifact, _.isEmpty(coeffs) ? this.getCoeffs() : coeffs, precision);
 	}
-	average() { return this.constructor.average(...arguments); }
-	statsSumMax(stats, sum, max, mergeCV = true, formula = true) {
-		const [fnSum, fnMax] = formula ? [formula.add, formula.max] : [math.add, math.max];
-		let [toSum, toMax] = splitMergeApply(stats, _.isArray(sum) || _.isNil(sum) ? sum : [sum], mergeCV ? ['cd', 'cr'] : null);
-		return [toSum.length > 1 ? fnSum(...toSum) : toSum[0], fnMax(toMax)];
+	affixDisabled(artifact, coeffs) {
+		if(_.isEmpty(coeffs)) coeffs = this.getCoeffs();
+		return !artifact.affixIn('bd') ? _.get(coeffs, artifact.affix, -1) == 0
+			: this.constructor.defaults(coeffs, -1, artifact.affix, 'bd') == 0;
 	}
+	//onlyEnabled(stats)
+	resetBaseDamage(coeffs) { return _.assign({ }, _.isEmpty(coeffs) ? this.getCoeffs() : coeffs, { atk: 0, def: 0, hp: 0 }); } // TODO reset(coeffs, ...stats)
 
 	getCoeffs(set = null) {
 		return _.defaults({ }, this.sets?.[set]?.coeffs, this.coeffs);
@@ -115,29 +125,29 @@ class Ruleset {
 	}
 }
 
-function applyToArray(functions, values, spread = false) {
-	return _.zipWith(functions, values, (f, v) => spread ? f(...v) : f(v));
-}
-function splitByKey(object, ...parts) {
+function partsByKey(object, ...parts) {
 	return _.reduce(object, (r, v, k) => {
 		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
 		_.isNil(r[i]) ? r[i] = { [k]: v } : r[i][k] = v;
 		return r;
 	}, Array.from(Array(parts.length + 1), () => ({ })));
 }
-function splitByKeyIntoArray(object, ...parts) {
+function partsByKeyIntoArray(object, ...parts) {
 	return _.reduce(object, (r, v, k) => {
 		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
 		_.isNil(r[i]) ? r[i] = [v] : r[i].push(v);
 		return r;
 	}, Array.from(Array(parts.length + 1), () => []));
 }
+/*function applyToArray(functions, values, spread = false) {
+	return _.zipWith(functions, values, (f, v) => spread ? f(...v) : f(v));
+}
 function splitMergeApply(object, split = null, merge = null, apply = null, spread = false) {
-	let [s, m, r] = splitByKeyIntoArray(object, split || [], merge || []);
+	let [s, m, r] = partsByKeyIntoArray(object, split || [], merge || []);
 	_.isEmpty(m) || r.push(_.sum(m));
 	if(_.isFunction(apply)) {
 		s = spread ? apply(...s) : apply(s);
 		r = spread ? apply(...r) : apply(r);
 	}
 	return [s, r];
-}
+}*/

@@ -8,6 +8,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/mathjs@14.6.0/lib/browser/math.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive@1.4.4/ractive.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/textile-js@2.1.1/lib/textile.min.js"></script>
 	<script src="js/formula.js"></script>
 	<script defer src="js/index.js"></script>
 	<script defer src="js/ruleset.js"></script>
@@ -96,7 +97,7 @@
 			{{#each messages}}
 				<tr class="{{type}}">
 					<th colspan="{{type == 'error' ? 5 : 1}}">
-						{{{text}}}
+						{{{@global.textile(text)}}}
 						{{#with formula}}<span class="note" tooltip="{{.}}">𝐢</span>{{/with}}
 					</th>
 				{{#each artifact ? artifact.toDisplay() : []}}
