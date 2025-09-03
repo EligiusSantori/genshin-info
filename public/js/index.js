@@ -64,6 +64,14 @@ var db = {
 			cr: ['BS', 'MH', 'OC'],
 			em: ['WT', 'GD', 'FPL'],
 			hb: ['MB', 'OHC', 'SDP'],
+			pyro: ['LW', 'CWF'],
+			cryo: ['BS', 'FDG'],
+			hydro: ['HD', 'ND'],
+			electro: ['TS', 'TF'],
+			anemo: ['VV', 'DPC'],
+			geo: ['AP', 'HOD', 'NWEW'],
+			dendro: ['DM'],
+			pd: ['BC', 'PF'],
 		},
 		artifact: {
 			major: [
