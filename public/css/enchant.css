@@ -83,7 +83,7 @@ nav+hr { margin: 2.5rem auto; }
 		position: absolute; top: 0;
 		border-top: thin solid var(--border-normal-color);
 	}
-	.coeff { text-align: right; font-family: monospace; line-height: 1.1; }
+	.coeff { min-width: 8ch; line-height: 1.1; text-align: right; font-family: monospace; }
 	.column-row td:first-child { padding: 0 0.5em; }
 	.column-row td:last-child { width: 15ch; }
 	.level-row { line-height: 2; font-size: large; }

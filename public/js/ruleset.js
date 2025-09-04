@@ -66,13 +66,17 @@ class Ruleset {
 		return _.isEmpty(multipliers) ? Artifact.average : _.mapValues(multipliers, (m, k) =>
 			_.isNil(precision) ? m * Artifact.average[k] : _.round(m * Artifact.average[k], precision));
 	}
-	static rollsSumMax(stats, sum, max, mergeCV = true, useFormula = true) {
+	static rollsSumMax(artifact, sum, max, mergeCV = true, useFormula = true, precision = 1) {
 		sum = _.transform(!_.isArray(sum) && !_.isNil(sum) ? [sum] : (sum || []), (r, v) => r.push(...Artifact.expand(v)), []);
 		max = _.transform(!_.isArray(max) && !_.isNil(max) ? [max] : (max || []), (r, v) => r.push(...Artifact.expand(v)), []);
-		const [fnSum, fnMax] = useFormula ? [formula.add, formula.max] : [math.add, math.max];
-		if(mergeCV) stats = { ..._.omit(stats, ['cd', 'cr']), cv: (stats.cd || 0) + (stats.cr || 0) };
-		let [toSum, toMax, rest] = partsByKeyIntoArray(stats, sum, max);
+
+		let rolls = artifact.getRolls(precision);
+		if(mergeCV) rolls = { ..._.omit(rolls, ['cd', 'cr']), cv: (rolls.cd || 0) + (rolls.cr || 0) };
+
+		let [toSum, toMax, rest] = partsByKeyIntoArray(rolls, sum, max);
 		[toSum, toMax] = [_.isEmpty(sum) ? rest : toSum, _.isEmpty(max) ? rest : toMax];
+
+		const [fnSum, fnMax] = useFormula ? [formula.add, formula.max] : [math.add, math.max];
 		return [toSum.length > 1 ? fnSum(...toSum) : (toSum[0] || 0), toMax.length > 1 ? fnMax(...toMax) : (toMax[0] || 0)];
 	}
 	static scope(artifact, coeffs) {
@@ -92,7 +96,7 @@ class Ruleset {
 
 	constructor(coeffs, rules, sets) {
 		Object.assign(this, { coeffs, sets });
-		this.rules = this.#parseRules(rules);
+		this.rules = this.#parseRules(rules || { });
 	}
 	#parseRules(rules) {
 		return _.mapValues(rules, r => _.isString(r) ? math.parse(r) : r);

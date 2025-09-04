@@ -93,16 +93,16 @@ function ready(target, template) {
 				stats_filled = _.sumBy(_.keys(Artifact.average), k => a[k] > 0 ? 1 : 0);
 			this.set('coeffs', c);
 
-			if(stats_filled < 1) return; // Empty artifact stats.
+			if (stats_filled < 1) return; // Empty artifact stats.
 			this.set('quality', Ruleset.quality(a, c));
-			if(!_.isFinite(a.level)) return; // Forecast impossible without level.
-			if(stats_filled > 4)
+			if (!_.isFinite(a.level)) return; // Forecast impossible without level.
+			if (stats_filled > 4)
 				this.message("Artifact can't have more than 4 stats.", -Infinity);
-			if(this.get('verdict') < 0) return; // There are critical errors.
+			if (this.get('verdict') < 0) return; // There are critical errors.
 
-			_.reduce(Artifact.average, (_, v, k) => a[k] = a[k] > 0 ? a[k] : 0, null); // Default values for scope.
+			_.reduce(Artifact.average, (_, v, k) => a[k] = a[k] > 0 ? a[k] : 0, null); // Default values for the scope.
 			let rolls = Math.floor(a.level / 4), left = 5 - rolls,
-				variants = forecast(a, Artifact.average, left), todo = ruleset.getRules(a.set);
+				variants = forecast(a, Artifact.average, left), todo = ruleset.getRules(a.set), fits = {};
 			this.summary('rolls', `${rolls} / ${left}`).summary('forecasts', variants.length).summary('rules', _.size(todo));
 			for(const f of variants)
 				for(const name in todo) {
@@ -116,10 +116,11 @@ function ready(target, template) {
 					else if(is === undefined)
 						this.message(`Unsupported rule ${name}.`, -Infinity);
 					if(is) {
-						this.promising(name, rule, f);
+						fits[name] = { rule, f };
 						delete todo[name];
 					}
 				}
+			_.map(ruleset.getRules(a.set), (v, k) => !_.isNil(fits[k]) && this.promising(k, fits[k].rule, fits[k].f)); // Sorting.
 			if(_.isNil(this.get('verdict')))
 				this.set('verdict', 0);
 		},
