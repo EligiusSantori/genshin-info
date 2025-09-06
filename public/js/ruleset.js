@@ -1,7 +1,46 @@
+function getFirstOr(object, keys, value) {
+	for(let key of keys)
+		if(!_.isNil(object[key])) // key in object | _.get
+			return object[key];
+	return value;
+}
+function partsByKey(object, ...parts) {
+	return _.reduce(object, (r, v, k) => {
+		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
+		_.isNil(r[i]) ? r[i] = { [k]: v } : r[i][k] = v;
+		return r;
+	}, Array.from(Array(parts.length + 1), () => ({ })));
+}
+function partsByKeyIntoArray(object, ...parts) {
+	return _.reduce(object, (r, v, k) => {
+		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
+		_.isNil(r[i]) ? r[i] = [v] : r[i].push(v);
+		return r;
+	}, Array.from(Array(parts.length + 1), () => []));
+}
+/*function applyToArray(functions, values, spread = false) {
+	return _.zipWith(functions, values, (f, v) => spread ? f(...v) : f(v));
+}*/
+
 class Artifact {
 	static average = Object.fromEntries(_.map(db.stats.artifact.rolls, (v, k) => [_.kebabCase(k), _.mean(v)]));
 	static elements = _.map(db.elements, v => _.kebabCase(v.name));
-	static expand(stat) { return { bd: ['hp', 'atk', 'def', stat], ed: [...this.elements, stat], pd: ['physical', stat] }[stat] || [stat]; }
+	static expand(stats, self = true) {
+		return _.transform(stats, (r, s) => {
+			switch(s) {
+				case 'bd': r.push('hp', 'atk', 'def'); self && r.push(s); break;
+				case 'ed': r.push(...this.elements); self && r.push(s); break;
+				case 'pd': r.push('physical'); self && r.push(s); break;
+				default: r.push(s);
+			}
+		}, []);
+	}
+	static dummy(multipliers, precision) {
+		if(_.isEmpty(multipliers) && !_.isNil(precision))
+			multipliers = _.mapValues(this.average, () => 1);
+		return _.isEmpty(multipliers) ? this.average : _.mapValues(multipliers, (m, k) =>
+			_.isNil(precision) ? m * this.average[k] : _.round(m * this.average[k], precision));
+	}
 
 	constructor() {
 		[this.set, this.slot, this.affix, this.level] = [null, 0, null, 0];
@@ -24,7 +63,7 @@ class Artifact {
 	sands() { return this.slot == 2; }
 	goblet() { return this.slot == 3; }
 	circlet() { return this.slot == 4; }
-	affixIn(...affixes) { return _.transform(affixes, (r, v) => r.push(...this.constructor.expand(v)), []).indexOf(this.affix) >= 0; }
+	affixIn(...affixes) { return this.constructor.expand(affixes, true).indexOf(this.affix) >= 0; }
 
 	getStats(predicate = _.identity) {
 		return _.mapValues(this.constructor.average, (v, k) => predicate(this[k], k));
@@ -45,30 +84,20 @@ class Artifact {
 }
 
 class Ruleset {
-	static defaults(object, value, ...keys) {
-		const result = keys.reduce((r, k) => _.isNil(r) && !_.isNil(object[k]) ? object[k] : r, null);
-		return _.isNil(result) ? value : result;
-	}
 	static quality(artifact, coeffs, precision) {
 		const average = Artifact.average, q = 0
-			+ this.defaults(coeffs, 1, 'cd') * (artifact.cd || 0)
-			+ this.defaults(coeffs, 1, 'cr') * (artifact.cr || 0)
-			+ this.defaults(coeffs, 1, 'atk', 'bd') * (artifact.atk || 0)
-			+ this.defaults(coeffs, 1, 'def', 'bd') * ((artifact.def || 0) / average.def * average.atk)
-			+ this.defaults(coeffs, 1, 'hp', 'bd') * (artifact.hp || 0)
-			+ this.defaults(coeffs, 1, 'er') * (artifact.er || 0)
-			+ this.defaults(coeffs, 1, 'em') * (artifact.em || 0) / average.em * average.cd;
+			+ getFirstOr(coeffs, ['cd'], 1) * (artifact.cd || 0)
+			+ getFirstOr(coeffs, ['cr'], 1) * (artifact.cr || 0)
+			+ getFirstOr(coeffs, ['atk', 'bd'], 1) * (artifact.atk || 0)
+			+ getFirstOr(coeffs, ['def', 'bd'], 1) * ((artifact.def || 0) / average.def * average.atk)
+			+ getFirstOr(coeffs, ['hp', 'bd'], 1) * (artifact.hp || 0)
+			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0)
+			+ getFirstOr(coeffs, ['em'], 1) * (artifact.em || 0) / average.em * average.cd;
 		return _.isNil(precision) ? q : _.round(q, precision);
 	}
-	static average(multipliers, precision) {
-		if(_.isEmpty(multipliers) && !_.isNil(precision))
-			multipliers = _.mapValues(Artifact.average, () => 1);
-		return _.isEmpty(multipliers) ? Artifact.average : _.mapValues(multipliers, (m, k) =>
-			_.isNil(precision) ? m * Artifact.average[k] : _.round(m * Artifact.average[k], precision));
-	}
 	static rollsSumMax(artifact, sum, max, mergeCV = true, useFormula = true, precision = 1) {
-		sum = _.transform(!_.isArray(sum) && !_.isNil(sum) ? [sum] : (sum || []), (r, v) => r.push(...Artifact.expand(v)), []);
-		max = _.transform(!_.isArray(max) && !_.isNil(max) ? [max] : (max || []), (r, v) => r.push(...Artifact.expand(v)), []);
+		sum = Artifact.expand(!_.isArray(sum) && !_.isNil(sum) ? [sum] : (sum || []), false);
+		max = Artifact.expand(!_.isArray(max) && !_.isNil(max) ? [max] : (max || []), false);
 
 		let rolls = artifact.getRolls(precision);
 		if(mergeCV) rolls = { ..._.omit(rolls, ['cd', 'cr']), cv: (rolls.cd || 0) + (rolls.cr || 0) };
@@ -79,79 +108,60 @@ class Ruleset {
 		const [fnSum, fnMax] = useFormula ? [formula.add, formula.max] : [math.add, math.max];
 		return [toSum.length > 1 ? fnSum(...toSum) : (toSum[0] || 0), toMax.length > 1 ? fnMax(...toMax) : (toMax[0] || 0)];
 	}
+	static resetIn(coeffs, ...stats) {
+		return Artifact.expand(stats, true).reduce(
+			(r, s) => { if(r[s] > 0) r[s] = 0; return r; },
+			_.clone(coeffs));
+	}
 	static scope(artifact, coeffs) {
-		let average = this.average(), rolls = artifact.getRolls(),
+		let average = Artifact.dummy(), rolls = artifact.getRolls(),
 			scope = _.map(average, (v, k) => [_.upperCase(k), _.isFinite(artifact[k]) ? artifact[k] : 0]);
 		return Object.fromEntries([...scope,
 			..._.map(coeffs, (v, k) => ['COEFF_' + _.upperCase(k), v]),
 			..._.map(average, (v, k) => ['AVG_' + _.upperCase(k), v]),
 			..._.map(rolls, (v, k) => ['ROLLS_' + _.upperCase(k), v]),
 			['SET', artifact.set || ''],
-			['SLOT', artifact.slot || 0],
+			['SLOT', artifact.slot || 0], // TODO bool constants.
 			['AFFIX', artifact.affix || ''],
 			['LEVEL', artifact.level || 0],
 			['Q', this.quality(artifact, coeffs)],
 		]);
 	}
 
-	constructor(coeffs, rules, sets) {
-		Object.assign(this, { coeffs, sets });
+	constructor(coeffs, rules, childs) {
+		Object.assign(this, { coeffs, childs });
 		this.rules = this.#parseRules(rules || { });
 	}
 	#parseRules(rules) {
 		return _.mapValues(rules, r => _.isString(r) ? math.parse(r) : r);
   }
 
-	quality(artifact, coeffs, precision) {
-		return this.constructor.quality(artifact, _.isEmpty(coeffs) ? this.getCoeffs() : coeffs, precision);
-	}
 	affixDisabled(artifact, coeffs) {
 		if(_.isEmpty(coeffs)) coeffs = this.getCoeffs();
-		return !artifact.affixIn('bd') ? _.get(coeffs, artifact.affix, -1) == 0
-			: this.constructor.defaults(coeffs, -1, artifact.affix, 'bd') == 0;
+		const path = artifact.affixIn('bd') ? [artifact.affix, 'bd'] : [artifact.affix];
+		return getFirstOr(coeffs, path, -1) == 0;
 	}
 	//onlyEnabled(stats)
-	resetBaseDamage(coeffs) { return _.assign({ }, _.isEmpty(coeffs) ? this.getCoeffs() : coeffs, { atk: 0, def: 0, hp: 0 }); } // TODO reset(coeffs, ...stats)
 
-	getCoeffs(set = null) {
-		return _.defaults({ }, this.sets?.[set]?.coeffs, this.coeffs);
+	coeffsFor(artifact) {
+		// FIXME
 	}
-	getCoeff(name, set = null) {
-		return this.sets?.[set]?.coeffs?.[name] || this.coeffs?.[name]
+	iterator(artifact) {
+		// FIXME
 	}
-	setCoeff(name, value, ...sets) {
-		if(_.isEmpty(sets.map(set => _.set(this, `sets.${set}.coeffs.${name}`, value))))
+
+	getCoeffs(child = null) { // FIXME replace
+		return _.defaults({ }, this.childs?.[child]?.coeffs, this.coeffs);
+	}
+	getCoeff(name, child = null) { // FIXME path chain
+		return this.childs?.[child]?.coeffs?.[name] || this.coeffs?.[name]
+	}
+	setCoeff(name, value, ...childs) {
+		if(_.isEmpty(childs.map(child => _.set(this, `childs.${child}.coeffs.${name}`, value))))
 			_.set(this, `coeffs.${name}`, value);
 		return this;
 	}
-	getRules(set = null) {
-		return _.defaults({ }, this.sets?.[set]?.rules, this.rules);
+	getRules(child = null) { // FIXME replace to iterator of...
+		return _.defaults({ }, this.childs?.[child]?.rules, this.rules);
 	}
 }
-
-function partsByKey(object, ...parts) {
-	return _.reduce(object, (r, v, k) => {
-		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
-		_.isNil(r[i]) ? r[i] = { [k]: v } : r[i][k] = v;
-		return r;
-	}, Array.from(Array(parts.length + 1), () => ({ })));
-}
-function partsByKeyIntoArray(object, ...parts) {
-	return _.reduce(object, (r, v, k) => {
-		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
-		_.isNil(r[i]) ? r[i] = [v] : r[i].push(v);
-		return r;
-	}, Array.from(Array(parts.length + 1), () => []));
-}
-/*function applyToArray(functions, values, spread = false) {
-	return _.zipWith(functions, values, (f, v) => spread ? f(...v) : f(v));
-}
-function splitMergeApply(object, split = null, merge = null, apply = null, spread = false) {
-	let [s, m, r] = partsByKeyIntoArray(object, split || [], merge || []);
-	_.isEmpty(m) || r.push(_.sum(m));
-	if(_.isFunction(apply)) {
-		s = spread ? apply(...s) : apply(s);
-		r = spread ? apply(...r) : apply(r);
-	}
-	return [s, r];
-}*/
