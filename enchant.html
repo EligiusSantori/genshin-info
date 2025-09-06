@@ -62,7 +62,7 @@
 					<td rowspan="9">
 						<div class="radio-panel">
 						{{#each affixes: name}}
-							<label class="radio-pane"><input type="radio" name="{{artifact.affix}}" value="{{name}}" />{{ . }}</label>
+							<label class="radio-pane"><input type="radio" name="{{artifact.affix}}" value="{{name}}" />{{.}}</label>
 						{{/each}}
 						</div>
 					</td>
@@ -72,14 +72,14 @@
 					<th>{{title}}</th>
 					<td><input type="number" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name]}}"
 						disabled="{{name == artifact.affix}}" /></td>
-					<td><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name] || 0}}"
+					<td class="slider"><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name] || 0}}"
 						disabled="{{name == artifact.affix}}" twoway="0" on-input="['statChange', name]" /></td>
 					<td class="coeff">×{{ @this.fraction(@global._.get(coeffs, name, coeffs.bd)) }}</td>
 				</tr>
 				{{/each}}
 				<tr class="quality-row">
 					<th colspan="2">Quality</th>
-					<td colspan="2"><button tabindex="-1" on-click="@this.clear()">{{{ @this.decimal(quality) || '&nbsp;' }}}</button></td>
+					<td colspan="2"><button tabindex="-1" on-click="@this.clear()">{{{ @this.decimal(quality, 2, '&nbsp;') }}}</button></td>
 				</tr>
 			</table>
 		</article>

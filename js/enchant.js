@@ -64,7 +64,7 @@ function ready(target, template) {
 			statChange(context, name) { this.set('artifact.' + name, context.node.value); },
 		},
 		verdictAsClass: (v, n, z, p) => [v => v > 0 && p, v => v === 0 && z, v => v < 0 && n].reduce((a, f) => a || f(v), false) || null,
-		decimal: (n, d = 2) => n == undefined ? '' : _.round(n, d),
+		decimal: (n, d = 2, p = '') => _.isNil(n) ? p : _.round(n, d),
 		fraction(n, d) {
 			if(!_.isNil(d)) n = math.fraction(n, d);
 			return math.typeOf(n) == 'Fraction' ? new math.ConstantNode(n) : this.decimal(n, 3);

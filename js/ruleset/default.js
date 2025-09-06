@@ -3,10 +3,10 @@ var ruleset;
 	// Database tweaks.
 	let sets = _.cloneDeep(db.stats.sets);
 	const elementalWide = ['GF', 'NO', 'RB', 'TM', 'ESF', 'MH', 'GT', 'SHCC', 'OC'];
-	sets.pyro.push('SR', 'FPL', 'VG', 'FHW', 'UR', 'LNO'); // Thoma, Yoimiya / Hu Tao, Dehya, Arlecchino, Gaming, burgeon, burning.
+	sets.pyro.push('SR', 'FPL', 'VG', 'FHW', 'UR', 'LNO'); // Yoimiya / Hu Tao, Dehya, Arlecchino, Gaming, burgeon, burning.
 	sets.hydro.push('OHC', 'FPL', 'SDP'); // Kokomi, Furina, Sigewinne, bloom.
-	sets.electro.push('EO', 'FPL', 'FHW', 'LNO'); // Yae Miko, Keqing, Fischl, Clorinde, Varesa, hyperbloom.
-	sets.anemo.push('WT', 'VH'); // Chasca, Mizuki, Xiao, Heizou.
+	sets.electro.push('EO', 'FPL', 'FHW', 'LNO'); // Keqing, Clorinde, Varesa, hyperbloom.
+	sets.anemo.push('WT', 'VH'); // Chasca, Xiao, Heizou.
 	sets.dendro.push('WT', 'GD', 'FPL', 'UR'); // Tighnari, Nahida, bloom, burning.
 	sets.pd.push('OHC'); // Qiqi.
 	const usedByHealers = [...sets.hb, 'NO', 'VV', 'DM', 'SHCC'];
@@ -21,17 +21,18 @@ var ruleset;
 	const lameEmSands = [...sets.em, 'NO', 'SHCC'];
 
 	// Shortcuts.
-	const [avg, average, summax] = [Artifact.average, Ruleset.average, Ruleset.rollsSumMax]; // Do not compare Q with avg.* (avg.cd is the only exception).
+	const avg = Artifact.average; // Do not compare Q with avg.* (avg.cd is the only exception).
+	const [average] = [Artifact.dummy].map(f => _.bind(f, Artifact));
+	const [quality, summax] = [Ruleset.quality, Ruleset.rollsSumMax].map(f => _.bind(f, Ruleset));
 	const [fraction, round] = [math.fraction, math.round].map(f => _.bind(f, math));
 	const [largerEq, add, max] = [formula.largerEq, formula.add, formula.max].map(f => _.bind(f, formula));
-	const quality = (a, c, p) => ruleset.quality(a, c, p);
-	const qMin = (r, p) => quality(Ruleset.average(r), null, p);
-	const _check = (a, c, fn) => !ruleset.affixDisabled(a, c) && fn(a, a.affixIn('bd') ? ruleset.resetBaseDamage(c) : c);
-	const offset = (fn) => (a) => _check(a, ruleset.getCoeffs(), fn);
+	const qMin = (r, p) => Ruleset.quality(average(r), ruleset.getCoeffs(), p);
+	const rule = (a, c, fn) => !ruleset.affixDisabled(a, c) && fn(a, a.affixIn('bd') ? Ruleset.resetIn(c, 'bd') : c); // FIXME single().
+	const offset = (fn) => (a) => rule(a, ruleset.getCoeffs(), fn);
 	const inset = (fn, strict = false) => function(a, c) {
 		if(strict && a.affixIn('ed', 'pd') && !_.includes([...(sets[a.affix] || []), ...elementalWide], a.set || '')) return false;
 		if(strict && a.affixIn('hb') && !a.setIn(...usedByHealers)) return false;
-		return _check(a, c, fn);
+		return rule(a, c, fn);
 	}
 	const utility = (affix, wants, i = +0) => { const AFFIX = _.upperCase(affix); return {
 		[`⚙️ ${AFFIX}[~fp~] | ${AFFIX}/ER/CR ≥ ×${5+i}`]: inset((a, c) => a.flower_plume() && a.setIn(...wants) && largerEq(summax(a, [], [affix, 'er', 'cr'], false)[1], 5+i)),
@@ -49,8 +50,9 @@ var ruleset;
 	ruleset = new Ruleset({ cd: 1, cr: 2, bd: fraction(3, 4), er: fraction(1, 3), em: fraction(9, 16) }, { // roll(EM) = roll(BD)
 
 		// Slotless rules.
-		'⚙️ ER ≥ 30% (off-set)': offset((a, c) => a.er >= 30),
-		'⚙️ EM ≥ 119 (off-set)': offset((a, c) => round(a.em) >= round(avg.em * 6)),
+		'⚙️ ER ≥ 30% (off-set)': offset((a, c) => a.er >= 30), // Mostly for Mona.
+		'⚙️ ER+CR ≥ ×7 (off-set)': offset((a, c) => largerEq(summax(a, ['er', 'cr'], [], false)[0], 7)), // Mostly for Rosaria.
+		// '⚙️ EM[~fp~] ≥ 119 (off-set)': offset((a, c) => a.flower_plume() && round(a.em) >= round(avg.em * 6)), // Same value as 2EM-set.
 		'⚔︎ EM[~sgc~] | Q ≥ 33 (off-set)': offset((a, c) => a.affixIn('em') && largerEq(round(quality(a, c)), round(avg.cd * 5))),
 
 		// Setless flower & plume rules.
@@ -94,7 +96,7 @@ var ruleset;
 		'⚔︎ CV[~c~] | Q ≥ 15 (CR-set)': inset((a, c) => a.affixIn('cd') && a.setIn(...sets.cr) && largerEq(round(quality(a, c)), round(quality(average({ atk: 4 }), c)))),
 
 		// Multiset utility rules.
-		...utility('atk', ...sets.atk, +1),
+		...utility('atk', sets.atk, +1),
 		...utility('atk', wantsErAtk),
 		...utility('def', wantsErDef),
 		...utility('hp', wantsErHp),
@@ -121,6 +123,27 @@ var ruleset;
 		'⚙️ EM&BD/HB[~sgc~] | ER+CR ≥ 4': inset((a, c) => a.affixIn('em', 'bd', 'hb') && a.setIn(...utilityWithEm) && largerEq(summax(a, ['er', 'cr'], [], false)[0], 4)),
 		'⚙️ EM&BD/HB[~sgc~] | (EM+BD)+ER+CR ≥ 6': inset((a, c) => a.affixIn('em', 'bd', 'hb') && a.setIn(...utilityWithEm) && largerEq(summax(a, ['em', 'bd', 'er', 'cr'], [], false)[0], 6)),
 	}, {
+		'Furina': new Ruleset(), // [GT] CV > HP > ED & ER
+		'Nilou': new Ruleset(), // [FPL > GD/2HP/2EM] HP > EM > ER
+		'Kokomi': new Ruleset(), // [OHC/GD/FPL/TM/SHCC/2EM/2ED/2HP] HB & ED > HP > ER
+		'Mualani': new Ruleset(), // [OC] CV & ED > EM & HP
+		// 'Sayu/Tighnari/Nahida/Cyno/Sethos': new Ruleset(), // CV & ED > EM > ATK
+		// 'Albedo/Noelle/Itto/Chiori': new Ruleset(), // CV & ED > DEF > ATK
+		// 'Layla/Kirara': new Ruleset(), // CV & ED > HP & ATK
+		// 'Sigewinne': new Ruleset(), // [SDP > NO/TM/ESF/OHC/2HP/2ER/2ED] CV & ED > HP > ER
+		// 'Dehya': new Ruleset(), // CV & ED > ATK > HP
+		// 'Hu Tao': new Ruleset(), // CV & ED > EM > HP > ATK
+		// 'Xinyan': new Ruleset(), // CV & ED > ATK > DEF
+		// 'Chasca': new Ruleset(), // CV > ATK > EM
+		// 'Sucrose': new Ruleset(), // EM > ER > CV & ATK
+		// 'Zhongli': new Ruleset(), // CV & ED > HP & ATK & ER
+		// 'Rosaria': new Ruleset(), // CR > ER > CD & ED & ATK
+		// 'Ifa': new Ruleset(), // EM > CV > ER & ATK
+		// 'Baizhu': new Ruleset(), // HP > ER > EM
+
+		// 'HOD': new Ruleset(), // TODO Double scaling: atk/1.5, def: def/1?
+		// 'VG': new Ruleset(), // TODO Double scaling: atk/1, hp/1.5?
+
 		'OHC': new Ruleset({ bd: 1, er: fraction(9, 10), em: fraction(3, 4) }, { // roll(BD) = roll(EM) = roll(ER) = 3/4 roll(CD)
 			// { bd: fraction(4, 3), er: fraction(6, 5), em: 1 } // roll(BD) = roll(EM) = roll(ER) = roll(CD)
 			'⚕️ HB[~c~] | ER/BD/EM/CR ≥ ×4': () => false,
