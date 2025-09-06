@@ -47,7 +47,7 @@ function ready(target, template) {
 		template: template,
 		data: {
 			artifact: _.set(new Artifact(), 'level', 20),
-			coeffs: ruleset.coeffs,
+			coeffs: coeffsFor(),
 			quality: null,
 			verdict: undefined,
 			summary: { },
@@ -89,7 +89,7 @@ function ready(target, template) {
 			this.message(name, +Infinity, artifact, f);
 		},
 		calculate() {
-			let a = this.get('artifact').valid(), c = ruleset.getCoeffs(a.set),
+			let a = this.get('artifact').valid(), c = coeffsFor(a),
 				stats_filled = _.sumBy(_.keys(Artifact.average), k => a[k] > 0 ? 1 : 0);
 			this.set('coeffs', c);
 
@@ -101,28 +101,23 @@ function ready(target, template) {
 			if (this.get('verdict') < 0) return; // There are critical errors.
 
 			_.reduce(Artifact.average, (_, v, k) => a[k] = a[k] > 0 ? a[k] : 0, null); // Default values for the scope.
-			let rolls = Math.floor(a.level / 4), left = 5 - rolls,
-				variants = forecast(a, Artifact.average, left), todo = ruleset.getRules(a.set), fits = {};
-			this.summary('rolls', `${rolls} / ${left}`).summary('forecasts', variants.length).summary('rules', _.size(todo));
-			for(const f of variants)
-				for(const name in todo) {
-					let rule = todo[name], is = undefined, temp;
-					if(_.isBoolean(temp = _.isFunction(rule) ? rule.call(ruleset, f, c) : null))
-						is = temp; // fn() => is.
-					else if(temp) // fn() => formula.
-						rule = temp;
-					if(is === undefined && rule instanceof math.Node)
-						is = formula.evaluate(rule, Ruleset.scope(f, c));
-					else if(is === undefined)
+			let rolls = Math.floor(a.level / 4), left = 5 - rolls, variants = forecast(a, Artifact.average, left);
+			this.summary('rolls', `${rolls} / ${left}`).summary('forecasts', variants.length), rules = 0;
+			for(let { name, rule, coeffs } of ruleset.for(a)) {
+				for(const variant of variants) {
+					let expr = _.isFunction(rule) ? rule.call(ruleset, variant, coeffs) : rule,
+						is = expr instanceof math.Node ? formula.evaluate(expr, Ruleset.scope(variant, coeffs)) : expr;
+					if(!_.isBoolean(is))
 						this.message(`Unsupported rule ${name}.`, -Infinity);
-					if(is) {
-						fits[name] = { rule, f };
-						delete todo[name];
+					else if(is) {
+						this.promising(name, expr, variant);
+						break;
 					}
 				}
-			_.map(ruleset.getRules(a.set), (v, k) => !_.isNil(fits[k]) && this.promising(k, fits[k].rule, fits[k].f)); // Sorting.
-			if(_.isNil(this.get('verdict')))
-				this.set('verdict', 0);
+				rules++;
+			}
+			_.isNil(this.get('verdict')) && this.set('verdict', 0);
+			this.summary('rules', rules);
 		},
 	});
 

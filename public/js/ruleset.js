@@ -6,14 +6,14 @@ function getFirstOr(object, keys, value) {
 }
 function partsByKey(object, ...parts) {
 	return _.reduce(object, (r, v, k) => {
-		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
+		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.includes(k)) || p == k) ? i : j, parts.length);
 		_.isNil(r[i]) ? r[i] = { [k]: v } : r[i][k] = v;
 		return r;
 	}, Array.from(Array(parts.length + 1), () => ({ })));
 }
 function partsByKeyIntoArray(object, ...parts) {
 	return _.reduce(object, (r, v, k) => {
-		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.indexOf(k) >= 0) || p == k) ? i : j, parts.length);
+		let i = parts.reduce((j, p, i) => j == parts.length && ((_.isArray(p) && p.includes(k)) || p == k) ? i : j, parts.length);
 		_.isNil(r[i]) ? r[i] = [v] : r[i].push(v);
 		return r;
 	}, Array.from(Array(parts.length + 1), () => []));
@@ -31,6 +31,18 @@ class Artifact {
 				case 'bd': r.push('hp', 'atk', 'def'); self && r.push(s); break;
 				case 'ed': r.push(...this.elements); self && r.push(s); break;
 				case 'pd': r.push('physical'); self && r.push(s); break;
+				case 'cv': r.push('cr', 'cd'); self && r.push(s); break;
+				default: r.push(s);
+			}
+		}, []);
+	}
+	static shorten(stats, self = true) {
+		return _.transform(stats, (r, s) => {
+			switch(true) {
+				case ['hp', 'atk', 'def'].includes(s): r.push('bd'); self && r.push(s); break;
+				case this.elements.includes(s): r.push('ed'); self && r.push(s); break;
+				case 'physical' == s: r.push('pd'); self && r.push(s); break;
+				case ['cr', 'cd'].includes(s): r.push('cv'); self && r.push(s); break;
 				default: r.push(s);
 			}
 		}, []);
@@ -58,12 +70,12 @@ class Artifact {
 		return a;
 	}
 
-	setIn(...sets) { return sets.indexOf(this.set) >= 0; }
+	setIn(...sets) { return sets.includes(this.set); }
 	flower_plume() { return this.slot < 2; }
 	sands() { return this.slot == 2; }
 	goblet() { return this.slot == 3; }
 	circlet() { return this.slot == 4; }
-	affixIn(...affixes) { return this.constructor.expand(affixes, true).indexOf(this.affix) >= 0; }
+	affixIn(...affixes) { return this.constructor.expand(affixes, true).includes(this.affix); }
 
 	getStats(predicate = _.identity) {
 		return _.mapValues(this.constructor.average, (v, k) => predicate(this[k], k));
@@ -95,7 +107,7 @@ class Ruleset {
 			+ getFirstOr(coeffs, ['em'], 1) * (artifact.em || 0) / average.em * average.cd;
 		return _.isNil(precision) ? q : _.round(q, precision);
 	}
-	static rollsSumMax(artifact, sum, max, mergeCV = true, useFormula = true, precision = 1) {
+	static rollsSumMax(artifact, sum, max, mergeCV = false, useFormula = true, precision = 1) {
 		sum = Artifact.expand(!_.isArray(sum) && !_.isNil(sum) ? [sum] : (sum || []), false);
 		max = Artifact.expand(!_.isArray(max) && !_.isNil(max) ? [max] : (max || []), false);
 
@@ -113,6 +125,9 @@ class Ruleset {
 			(r, s) => { if(r[s] > 0) r[s] = 0; return r; },
 			_.clone(coeffs));
 	}
+	static disabledIn(coeffs, stat) {
+		return getFirstOr(coeffs, Artifact.shorten([stat], true).reverse(), -1) == 0;
+	}
 	static scope(artifact, coeffs) {
 		let average = Artifact.dummy(), rolls = artifact.getRolls(),
 			scope = _.map(average, (v, k) => [_.upperCase(k), _.isFinite(artifact[k]) ? artifact[k] : 0]);
@@ -128,40 +143,26 @@ class Ruleset {
 		]);
 	}
 
+	#coeffs = { };
+	#rules = { };
+	#childs = [];
+
 	constructor(coeffs, rules, childs) {
-		Object.assign(this, { coeffs, childs });
-		this.rules = this.#parseRules(rules || { });
+		this.#coeffs = _.isEmpty(coeffs) ? { } : coeffs;
+		this.#rules = this.#parseRules(_.isEmpty(rules) ? { } : rules);
+		this.#childs = _.isEmpty(childs) ? [] : childs;
 	}
 	#parseRules(rules) {
 		return _.mapValues(rules, r => _.isString(r) ? math.parse(r) : r);
   }
 
-	affixDisabled(artifact, coeffs) {
-		if(_.isEmpty(coeffs)) coeffs = this.getCoeffs();
-		const path = artifact.affixIn('bd') ? [artifact.affix, 'bd'] : [artifact.affix];
-		return getFirstOr(coeffs, path, -1) == 0;
-	}
-	//onlyEnabled(stats)
-
-	coeffsFor(artifact) {
-		// FIXME
-	}
-	iterator(artifact) {
-		// FIXME
-	}
-
-	getCoeffs(child = null) { // FIXME replace
-		return _.defaults({ }, this.childs?.[child]?.coeffs, this.coeffs);
-	}
-	getCoeff(name, child = null) { // FIXME path chain
-		return this.childs?.[child]?.coeffs?.[name] || this.coeffs?.[name]
-	}
-	setCoeff(name, value, ...childs) {
-		if(_.isEmpty(childs.map(child => _.set(this, `childs.${child}.coeffs.${name}`, value))))
-			_.set(this, `coeffs.${name}`, value);
-		return this;
-	}
-	getRules(child = null) { // FIXME replace to iterator of...
-		return _.defaults({ }, this.childs?.[child]?.rules, this.rules);
-	}
+  *for(artifact, parent) {
+		const coeffs = _.assign({ }, parent, _.isFunction(this.#coeffs) ? this.#coeffs(artifact) : this.#coeffs);
+		for(const name in this.#rules)
+			yield { name: name, rule: this.#rules[name], coeffs };
+		for(let rs of this.#childs)
+			if((rs = _.isFunction(rs) ? rs(artifact) : rs) instanceof this.constructor)
+				for(const r of rs.for(artifact, coeffs))
+					yield r;
+  }
 }
