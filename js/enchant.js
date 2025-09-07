@@ -110,6 +110,7 @@ function ready(target, template) {
 					if(!_.isBoolean(is))
 						this.message(`Unsupported rule ${name}.`, -Infinity);
 					else if(is) {
+						// console.log(name, coeffs, variant);
 						this.promising(name, expr, variant);
 						break;
 					}
