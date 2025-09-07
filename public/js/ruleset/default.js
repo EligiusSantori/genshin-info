@@ -17,23 +17,30 @@ var ruleset, coeffsFor;
 	sets.dendro.push('WT', 'GD', 'FPL', 'UR'); // Tighnari, Nahida, bloom, burning.
 	sets.pd.push('OHC'); // Qiqi.
 	const usedByHealers = [...sets.hb, 'NO', 'VV', 'DM', 'SHCC'];
-	const coeffsBySet = [ // Lower conditions have higher priority.
-		[{ cd: 1, cr: 2, bd: fraction(3, 4), er: fraction(1, 3), em: fraction(9, 16) }], // roll(ER) ≈ roll(BD)/2; roll(EM) = roll(BD)
+	const baseCoeff = fraction(3, 4), coeffsBySet = [ // Lower conditions have higher priority.
+		[{ cd: 1, cr: 2, bd: baseCoeff, er: math.divide(baseCoeff, 2), em: math.pow(baseCoeff, 2) }], // roll(ER) = roll(BD)/2; roll(EM) = roll(BD)
 		[...sets.atk, { def: 0, hp: 0 }],
 		[...sets.def, { hp: 0 }],
 		[...sets.hp, { def: 0 }],
-		['MH', 'OC', { cr: math.multiply(fraction(3, 4), 2) }], // coeff(CR) = coeff(BD) * 2
-		['BS', { cr: fraction(9, 8) }], // roll(CR) = roll(BD)
-		['ESF', 'NO', { er: fraction(3, 4) }], // coeff(ER) = coeff(BD)
-		['GF', 'BC', 'MB', 'AP', 'BS', 'TM', 'PF', 'HOD', 'VH', 'SDP', 'NWEW', 'FDG', { em: fraction(1, 3) }], // roll(EM) ≈ roll(BD) / 2
-		['WT', 'DM', 'GD', 'SR', 'OC', { em: fraction(3, 4) }], // coeff(EM) = coeff(BD)
+		['HOD', { atk: math.divide(baseCoeff, 2) }], // roll(ATK) = roll(DEF) / 2
+		['VG', { hp: math.divide(baseCoeff, 2) }], // Dehya: roll(HP) = roll(ATK) / 2
+		['MH', 'OC', 'NSU', { cr: math.multiply(baseCoeff, 2) }], // coeff(CR) = coeff(BD) * 2
+		['BS', { cr: math.multiply(math.pow(baseCoeff, 2), 2) }], // roll(CR) = roll(BD)
+		['NO', 'ESF', 'SMS', { er: baseCoeff }], // coeff(ER) = coeff(BD)
+		['GF', 'BC', 'MB', 'AP', 'BS', 'TM', 'PF', 'HOD', 'VH', 'DPC', 'SDP', 'NWEW', 'FDG', { em: math.divide(math.pow(baseCoeff, 2), 2) }], // roll(EM) = roll(BD) / 2
+		['WT', 'DM', 'GD', 'SR', 'OC', 'NSU', 'SMS', { em: baseCoeff }], // coeff(EM) = coeff(BD)
 		['CWF', 'FPL', 'ND', { em: 1 }], // coeff(EM) = coeff(CD)
 		// ['OHC', { bd: fraction(4, 3), er: fraction(6, 5), em: 1 }] // roll(BD) = roll(EM) = roll(ER) = roll(CD)
-		['OHC', { bd: 1, er: fraction(9, 10), em: fraction(3, 4) }], // roll(BD) = roll(EM) = roll(ER) = 3/4 roll(CD)
+		['OHC', { bd: 1, er: 1, em: baseCoeff }], // roll(BD) = roll(EM) = roll(ER) = 3/4 roll(CD)
 	];
 
 	// Language extensions.
-	const rule = (fn) => (a, c) => !Ruleset.disabledIn(c, a.affix) && fn(a, a.affixIn('bd') ? Ruleset.resetIn(c, 'bd') : c); // FIXME single().
+	const rule = (fn, dd) => (a, c) => {
+		if(Ruleset.disabledIn(c, a.affix)) return false;
+		if(dd === undefined || (_.isArray(dd) && dd.length))
+			c = Ruleset.dedouble(a, c, ...(dd === undefined ? [] : dd));
+		return fn(a, c);
+	}
 	const rules = (list) => new Ruleset(null, list);
 	const coeffsBy = (set) => _.assign({ }, ...coeffsBySet.map(cond => cond.length == 1 || cond.includes(set) ? _.last(cond) : { }));
 	const qMin = (r, p) => Ruleset.quality(average(r), coeffsBy(), p);
@@ -64,7 +71,6 @@ var ruleset, coeffsFor;
 	ruleset = new Ruleset(coeffsBy(), {
 		'⚙️ ER ≥ 30% (off-set)': rule((a, c) => a.er >= 30), // Mostly for Mona.
 		'⚙️ ER+CR ≥ ×7 (off-set)': rule((a, c) => largerEq(summax(a, ['er', 'cr'], [])[0], 7)), // Mostly for Rosaria.
-		// '⚙️ EM[~fp~] ≥ 119 (off-set)': rule((a, c) => a.flower_plume() && round(a.em) >= round(avg.em * 6)), // Has same value as 2EM-set.
 		'⚔︎ EM[~sgc~] | Q ≥ 33 (off-set)': rule((a, c) => a.affixIn('em') && largerEq(round(quality(a, c)), round(avg.cd * 5))),
 
 		'⚔︎ Q[~fp~] ≥ 45 (off-set)': rule((a, c) => a.flower_plume() && largerEq(round(quality(a, c)), round(avg.cd * 7 - 1))),
@@ -89,12 +95,13 @@ var ruleset, coeffsFor;
 			'⚔︎ HP&DEF[~s~] | Q ≥ 33': rule((a, c) => a.sands() && a.affixIn('hp', 'def') && largerEq(round(quality(a, c)), round(avg.cd * 5))),
 			'⚔︎ ER[~s~] | Q ≥ 24': rule((a, c) => a.affixIn('er') && largerEq(quality(a, c, 1), qMin({atk: 3, cd: 2}, 1))), // Qmin = 3BD+2CD.
 
+			'⚔︎ BD[~g~] | Q ≥ 30': rule((a, c) => a.goblet() && a.affixIn('bd') && largerEq(round(quality(a, c)), 30)),
+
 			'⚔︎ CV[~c~] | Q ≥ 20': rule((a, c) => a.affixIn('cd', 'cr') && largerEq(round(quality(a, c)), round(avg.cd * 3))),
 			'⚔︎ BD[~c~] | Q ≥ 40': rule((a, c) => a.circlet() && a.affixIn('bd') && largerEq(round(quality(a, c)), round(avg.cd * 6))),
 		}, [
 			(a) => matchSetBonus(a) && rules({ // In-set goblets & helmets.
 				'⚔︎ ED[~g~] | Q ≥ 25': rule((a, c) => a.goblet() && a.affixIn('ed') && largerEq(round(quality(a, c)), 25)),
-				'⚔︎ BD[~g~] | Q ≥ 30': rule((a, c) => a.goblet() && a.affixIn('bd') && largerEq(round(quality(a, c)), 30)),
 				'⚔︎ PD[~g~] | Q ≥ 30': rule((a, c) => a.goblet() && a.affixIn('pd') && largerEq(round(quality(a, c)), 30)),
 
 				'⚕️ HB[~c~] | ER+CV/BD/EM ≥ ×3': rule((a, c) => a.affixIn('hb') && largerEq(add(...summax(a, 'er', [], true)), 3)),
@@ -112,7 +119,7 @@ var ruleset, coeffsFor;
 			(a) => a.setIn(...sets.hp, 'NO', 'HD', 'TM', 'VG', 'SHCC') && rules({ // Sets with lower HP% requirements (for sands).
 				'⚔︎ HP[~s~] | Q ≥ 26': rule((a, c) => a.sands() && a.affixIn('hp') && largerEq(round(quality(a, c)), round(avg.cd * 4))),
 			}),
-			(a) => a.setIn(...sets.em, 'NO', 'SHCC') && rules({ // Sets with lower EM requirements (for sands).
+			(a) => a.setIn(...sets.em, 'NO', 'SHCC', 'SMS') && rules({ // Sets with lower EM requirements (for sands).
 				'⚔︎ EM[~s~] | Q ≥ 26': rule((a, c) => a.sands() && a.affixIn('em') && largerEq(round(quality(a, c)), round(avg.cd * 4))),
 			}),
 			(a) => a.setIn(...sets.atk) && rules(utility('atk', +1)), // Sets with ATK bonus that wants ER% & ATK% utility parts.
@@ -139,7 +146,7 @@ var ruleset, coeffsFor;
 				'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×5': () => false,
 				'⚕️ HB[~c~] | ER+CR+(BD/EM) ≥ ×6': () => false,
 			}),
-			(a) => a.setIn('DM', 'FPL') && rules({ // Sets with full utility rules (when ER = BD).
+			(a) => a.setIn('DM', 'FPL', 'SMS') && rules({ // Sets with full utility rules (when ER = BD).
 				'⚙️ EM&BD[~fp~] | (EM+BD)/ER/CR ≥ ×5': rule((a, c) => a.flower_plume() && largerEq(max(...summax(a, ['em', 'bd'], ['er', 'cr'])), 5)),
 				'⚙️ EM&BD[~fp~] | (EM+BD)+ER/CR ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, ['em', 'bd'], ['er', 'cr'])), 6)),
 				'⚙️ EM&BD[~fp~] | ER+CR ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(summax(a, ['er', 'cr'], [])[0], 6)),
@@ -149,28 +156,25 @@ var ruleset, coeffsFor;
 				'⚙️ EM&BD/HB[~sgc~] | ER+CR ≥ 4': rule((a, c) => a.affixIn('em', 'bd', 'hb') && largerEq(summax(a, ['er', 'cr'], [])[0], 4)),
 				'⚙️ EM&BD/HB[~sgc~] | (EM+BD)+ER+CR ≥ 6': rule((a, c) => a.affixIn('em', 'bd', 'hb') && largerEq(summax(a, ['em', 'bd', 'er', 'cr'], [])[0], 6)),
 			}),
+
+			// TODO new Ruleset(), // Furina: [GT] CV > HP > ED & ER
+			// TODO new Ruleset(), // Nilou: [FPL > GD/2HP/2EM] HP > EM > ER
+			// TODO new Ruleset(), // Kokomi: [OHC/GD/FPL/TM/SHCC/2EM/2ED/2HP] HB & ED > HP > ER
+			// TODO new Ruleset(), // Mualani: [OC] CV & ED > EM & HP
+			// Sayu/Tighnari/Nahida/Cyno/Sethos: CV & ED > EM > ATK
+			// Albedo/Noelle/Itto/Chiori: CV & ED > DEF > ATK
+			// Layla/Kirara: CV & ED > HP & ATK
+			// Sigewinne: [SDP > NO/TM/ESF/OHC/2HP/2ER/2ED] CV & ED > HP > ER
+			// Dehya: CV & ED > ATK > HP
+			// Hu Tao: CV & ED > EM > HP > ATK
+			// Xinyan: CV & ED > ATK > DEF
+			// Chasca: CV > ATK > EM
+			// Sucrose: EM > ER > CV & ATK
+			// Zhongli: CV & ED > HP & ATK & ER
+			// Rosaria: CR > ER > CD & ED & ATK
+			// Ifa: EM > CV > ER & ATK
+			// Baizhu: HP > ER > EM
 		]),
-
-		// TODO new Ruleset(), // Furina: [GT] CV > HP > ED & ER
-		// TODO new Ruleset(), // Nilou: [FPL > GD/2HP/2EM] HP > EM > ER
-		// TODO new Ruleset(), // Kokomi: [OHC/GD/FPL/TM/SHCC/2EM/2ED/2HP] HB & ED > HP > ER
-		// TODO new Ruleset(), // Mualani: [OC] CV & ED > EM & HP
-		// Sayu/Tighnari/Nahida/Cyno/Sethos: CV & ED > EM > ATK
-		// Albedo/Noelle/Itto/Chiori: CV & ED > DEF > ATK
-		// Layla/Kirara: CV & ED > HP & ATK
-		// Sigewinne: [SDP > NO/TM/ESF/OHC/2HP/2ER/2ED] CV & ED > HP > ER
-		// Dehya: CV & ED > ATK > HP
-		// Hu Tao: CV & ED > EM > HP > ATK
-		// Xinyan: CV & ED > ATK > DEF
-		// Chasca: CV > ATK > EM
-		// Sucrose: EM > ER > CV & ATK
-		// Zhongli: CV & ED > HP & ATK & ER
-		// Rosaria: CR > ER > CD & ED & ATK
-		// Ifa: EM > CV > ER & ATK
-		// Baizhu: HP > ER > EM
-
-		// TODO HOD: double scaling: atk/1.5, def/1?
-		// TODO VG: double scaling: atk/1, hp/1.5?
 	]);
 	coeffsFor = (a) => coeffsBy(a?.set); // TODO Wrap with dedouble function.
 })();

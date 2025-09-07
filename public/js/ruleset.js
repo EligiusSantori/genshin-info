@@ -54,9 +54,10 @@ class Artifact {
 			_.isNil(precision) ? m * this.average[k] : _.round(m * this.average[k], precision));
 	}
 
-	constructor() {
+	constructor(data = null) {
 		[this.set, this.slot, this.affix, this.level] = [null, 0, null, 0];
 		Object.assign(this, _.mapValues(this.constructor.average, () => null));
+		_.isEmpty(data) || Object.assign(this, data);
 	}
 
 	valid() {
@@ -96,14 +97,14 @@ class Artifact {
 }
 
 class Ruleset {
-	static quality(artifact, coeffs, precision) {
+	static quality(artifact, coeffs, precision, useFormula = false) {
 		const average = Artifact.average, q = 0
 			+ getFirstOr(coeffs, ['cd'], 1) * (artifact.cd || 0)
 			+ getFirstOr(coeffs, ['cr'], 1) * (artifact.cr || 0)
 			+ getFirstOr(coeffs, ['atk', 'bd'], 1) * (artifact.atk || 0)
-			+ getFirstOr(coeffs, ['def', 'bd'], 1) * ((artifact.def || 0) / average.def * average.atk)
+			+ getFirstOr(coeffs, ['def', 'bd'], 1) * (artifact.def || 0) / average.def * average.atk
 			+ getFirstOr(coeffs, ['hp', 'bd'], 1) * (artifact.hp || 0)
-			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0)
+			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0) / average.er * average.atk
 			+ getFirstOr(coeffs, ['em'], 1) * (artifact.em || 0) / average.em * average.cd;
 		return _.isNil(precision) ? q : _.round(q, precision);
 	}
@@ -120,10 +121,24 @@ class Ruleset {
 		const [fnSum, fnMax] = useFormula ? [formula.add, formula.max] : [math.add, math.max];
 		return [toSum.length > 1 ? fnSum(...toSum) : (toSum[0] || 0), toMax.length > 1 ? fnMax(...toMax) : (toMax[0] || 0)];
 	}
+	static dedouble(artifact, coeffs, ...stats) {
+		let keep = [], max = null;
+		stats = Artifact.expand(stats, false);
+		if(!stats.length) {
+			stats = Artifact.expand(['bd'], false); // Dedoubling only ATK%/DEF%/HP% by default.
+			keep = _.filter(stats, s => coeffs[s] > 0); // Prevent reseting of explicitly specified coeffs by default.
+		}
+		if(stats.includes(artifact.affix)) // All except artifact affix are subject to reset.
+			max = artifact.affix;
+		else { // Searching best stat among dedoubling ones.
+			stats = _.filter(stats, s => coeffs[s] !== 0); // Excluding already disabled coeffs.
+			const rolls = _.pick(artifact.getRolls(), stats);
+			max = _.maxBy(stats, s => rolls[s] || 0);
+		}
+		return this.resetIn(coeffs, ..._.without(stats, max, ...keep));
+	}
 	static resetIn(coeffs, ...stats) {
-		return Artifact.expand(stats, true).reduce(
-			(r, s) => { if(r[s] > 0) r[s] = 0; return r; },
-			_.clone(coeffs));
+		return Artifact.expand(stats, true).reduce((r, s) => { r[s] = 0; return r; }, _.clone(coeffs));
 	}
 	static disabledIn(coeffs, stat) {
 		return getFirstOr(coeffs, Artifact.shorten([stat], true).reverse(), -1) == 0;
@@ -148,7 +163,7 @@ class Ruleset {
 	#childs = [];
 
 	constructor(coeffs, rules, childs) {
-		this.#coeffs = _.isEmpty(coeffs) ? { } : coeffs;
+		this.#coeffs = _.isFunction(coeffs) || !_.isEmpty(coeffs) ? coeffs : { };
 		this.#rules = this.#parseRules(_.isEmpty(rules) ? { } : rules);
 		this.#childs = _.isEmpty(childs) ? [] : childs;
 	}
