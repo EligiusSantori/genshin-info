@@ -39,9 +39,8 @@ var formula, permute, distribute4;
 		}
 	}
 
-	// new ConditionalNode(condition: Node, trueExpr: Node, falseExpr: Node)?
 	formula = {
-		constant(c) { return new math.ConstantNode(c); },
+		constant(c) { return c instanceof math.Node ? c : new math.ConstantNode(c); },
 		parenthesis(node) { return new math.ParenthesisNode(node); },
 		function(fn, ...nodes) { return new math.FunctionNode(fn, nodes.map(wrap)); },
 		fraction(a, b) { return new math.ConstantNode(math.fraction(a, b)); },
@@ -51,7 +50,7 @@ var formula, permute, distribute4;
 		divide(...args) { return args.reduce((a, v) => new math.OperatorNode('/', 'divide', [wrap(a), wrap(v)]))},
 		pow(a, b) { return new math.OperatorNode('^', 'pow', [wrap(a), wrap(b)]); },
 		factorial(n) { return new math.OperatorNode('!', 'factorial', [wrap(n)]); },
-		round(v, d) { return new math.FunctionNode('round', wrap(v), d); },
+		round(v, d) { return new math.FunctionNode('round', [wrap(v), this.constant(d)]); },
 		min(...args) { return new math.FunctionNode('min', args.map(wrap)); },
 		max(...args) { return new math.FunctionNode('max', args.map(wrap)); },
 		larger(a, b, e = false) {  return new math.OperatorNode(e ? '>=' : '>', e ? 'largerEq' : 'larger', [wrap(a), wrap(b)]) },

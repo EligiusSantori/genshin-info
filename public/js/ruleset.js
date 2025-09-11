@@ -97,7 +97,7 @@ class Artifact {
 }
 
 class Ruleset {
-	static quality(artifact, coeffs, precision, useFormula = false) {
+	static quality(artifact, coeffs, precision) {
 		const average = Artifact.average, q = 0
 			+ getFirstOr(coeffs, ['cd'], 1) * (artifact.cd || 0)
 			+ getFirstOr(coeffs, ['cr'], 1) * (artifact.cr || 0)
@@ -126,7 +126,7 @@ class Ruleset {
 		stats = Artifact.expand(stats, false);
 		if(!stats.length) {
 			stats = Artifact.expand(['bd'], false); // Dedoubling only ATK%/DEF%/HP% by default.
-			keep = _.filter(stats, s => coeffs[s] > 0); // Prevent reseting of explicitly specified coeffs by default.
+			keep = _.filter(stats, s => coeffs[s] > 0); // Preventing reseting of explicitly specified coeffs by default.
 		}
 		if(stats.includes(artifact.affix)) // All except artifact affix are subject to reset.
 			max = artifact.affix;
@@ -134,6 +134,7 @@ class Ruleset {
 			stats = _.filter(stats, s => coeffs[s] !== 0); // Excluding already disabled coeffs.
 			const rolls = _.pick(artifact.getRolls(), stats);
 			max = _.maxBy(stats, s => rolls[s] || 0);
+			if(_.isEmpty(rolls[max])) return coeffs; // Preventing reseting of inexisted coeffs.
 		}
 		return this.resetIn(coeffs, ..._.without(stats, max, ...keep));
 	}
@@ -181,3 +182,21 @@ class Ruleset {
 					yield r;
   }
 }
+
+formula._scale = function(what, from, to) { return what != 0 && from != to ? this.multiply(this.divide(what, from), to) : what; }
+formula._coeff = function(value, multiply) { return multiply != 1 && value != 0 ? this.multiply(value, multiply) : value; }
+formula.quality = function(artifact, coeffs, p) {
+	let average = Artifact.average, round = _.identity;
+	if(!_.isNil(p)) {
+		average = _.mapValues(Artifact.average, (v, k) => math.round(v, p));
+		round = (f, p) => this.round(f, p);
+	}
+	return round(this.add(
+		this._coeff(artifact.cd || 0, getFirstOr(coeffs, ['cd'], 1)),
+		this._coeff(artifact.cr || 0, getFirstOr(coeffs, ['cr'], 1)),
+		this._coeff(this._scale(artifact.atk || 0, average.atk, average.atk), getFirstOr(coeffs, ['atk', 'bd'], 1)),
+		this._coeff(this._scale(artifact.def || 0, average.def, average.atk), getFirstOr(coeffs, ['def', 'bd'], 1)),
+		this._coeff(this._scale(artifact.hp || 0, average.hp, average.atk), getFirstOr(coeffs, ['hp', 'bd'], 1)),
+		this._coeff(this._scale(artifact.er || 0, average.er, average.atk), getFirstOr(coeffs, ['er'], 1)),
+		this._coeff(this._scale(artifact.em || 0, average.em, average.cd), getFirstOr(coeffs, ['em'], 1))), p);
+};

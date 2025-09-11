@@ -9,7 +9,7 @@ var ruleset, coeffsFor;
 
 	// Database tweaks.
 	let sets = _.cloneDeep(db.stats.sets);
-	const elementalWide = ['GF', 'NO', 'RB', 'TM', 'ESF', 'MH', 'GT', 'SHCC', 'OC'];
+	const elementalWide = ['NO', 'RB', 'TM', 'ESF', 'MH', 'GT', 'SHCC', 'OC'];
 	sets.pyro.push('SR', 'FPL', 'VG', 'FHW', 'UR', 'LNO'); // Yoimiya / Hu Tao, Dehya, Arlecchino, Gaming, burgeon, burning.
 	sets.hydro.push('OHC', 'FPL', 'SDP'); // Kokomi, Furina, Sigewinne, bloom.
 	sets.electro.push('EO', 'FPL', 'FHW', 'LNO'); // Keqing, Clorinde, Varesa, hyperbloom.
@@ -17,11 +17,13 @@ var ruleset, coeffsFor;
 	sets.dendro.push('WT', 'GD', 'FPL', 'UR'); // Tighnari, Nahida, bloom, burning.
 	sets.pd.push('OHC'); // Qiqi.
 	const usedByHealers = [...sets.hb, 'NO', 'VV', 'DM', 'SHCC'];
+	const likesEM = ['NO', 'VV', 'RB', 'TS', 'TF', 'LW', 'CWF', 'HD', 'SR', 'ESF', 'EO', 'DM', 'ND', 'VG', 'MH', 'GT', 'FHW', 'UR', 'SHCC', 'OC', 'LNO', 'SMS'];
 	const baseCoeff = fraction(3, 4), coeffsBySet = [ // Lower conditions have higher priority.
-		[{ cd: 1, cr: 2, bd: baseCoeff, er: math.divide(baseCoeff, 2), em: math.pow(baseCoeff, 2) }], // roll(ER) = roll(BD)/2; roll(EM) = roll(BD)
+		[{ cd: 1, cr: 2, bd: baseCoeff, er: math.divide(baseCoeff, 2), em: math.divide(math.pow(baseCoeff, 2), 2) }], // roll(ER) = rolls(EM) = roll(BD)/2
 		[...sets.atk, { def: 0, hp: 0 }],
 		[...sets.def, { hp: 0 }],
 		[...sets.hp, { def: 0 }],
+		[...likesEM, { em: math.pow(baseCoeff, 2) }], // roll(EM) = roll(BD)
 		['HOD', { atk: math.divide(baseCoeff, 2) }], // roll(ATK) = roll(DEF) / 2
 		['VG', { hp: math.divide(baseCoeff, 2) }], // Dehya: roll(HP) = roll(ATK) / 2
 		['MH', 'OC', 'NSU', { cr: math.multiply(baseCoeff, 2) }], // coeff(CR) = coeff(BD) * 2
@@ -44,6 +46,7 @@ var ruleset, coeffsFor;
 	const rules = (list) => new Ruleset(null, list);
 	const coeffsBy = (set) => _.assign({ }, ...coeffsBySet.map(cond => cond.length == 1 || cond.includes(set) ? _.last(cond) : { }));
 	const qMin = (r, p) => Ruleset.quality(average(r), coeffsBy(), p);
+	const qFormula = (a, c, p) => formula.quality(a, c, p);
 	const matchSetBonus = (a) =>
 		(a.affixIn('atk') && a.setIn(...sets.atk)) ||
 		(a.affixIn('def') && a.setIn(...sets.def)) ||
@@ -60,12 +63,11 @@ var ruleset, coeffsFor;
 		[`⚙️ ${AFFIX}[~fp~] | ${AFFIX}+ER ≥ ×${6+i}`]: rule((a, c) => a.flower_plume() && largerEq(summax(a, [affix, 'er'], [])[0], 6+i)),
 		[`⚙️ ${AFFIX}[~fp~] | ${AFFIX}+CR ≥ ×${6+i}`]: rule((a, c) => a.flower_plume() && largerEq(summax(a, [affix, 'cr'], [])[0], 6+i)),
 		[`⚙️ ${AFFIX}[~fp~] | ${AFFIX}+ER+CR ≥ ×${7+i}`]: rule((a, c) => a.flower_plume() && largerEq(summax(a, [affix, 'er', 'cr'], [])[0], 7+i)),
-		[`⚙️ ER[~s~] | ${AFFIX}/CR ≥ ×${3+i}`]: rule((a, c) => a.affixIn('er') && largerEq(summax(a, [], [affix, 'cr'])[1], 3+i)),
-		[`⚙️ ER[~s~] | ${AFFIX}+CR ≥ ×${5+i}`]: rule((a, c) => a.affixIn('er') && largerEq(summax(a, [affix, 'cr'], [])[0], 5+i)),
-		[`⚙️ ${AFFIX}[~sgc~] | ER/CR ≥ ×${3+i}`]: rule((a, c) => a.affixIn(affix) && largerEq(summax(a, [], ['er', 'cr'])[1], 3+i)),
+		[`⚙️ ER/CR[~sc~] | ${AFFIX}/ER/CR ≥ ×${3+i}`]: rule((a, c) => a.affixIn('er', 'cr') && largerEq(summax(a, [], [affix, 'er', 'cr'])[1], 3+i)),
+		[`⚙️ ER/CR[~sc~] | ${AFFIX}+ER+CR ≥ ×${5+i}`]: rule((a, c) => a.affixIn('er', 'cr') && largerEq(summax(a, [affix, 'er', 'cr'], [])[0], 5+i)),
+		[`⚙️ ${AFFIX}[~sgc~] | ER ≥ ×${3+i}`]: rule((a, c) => a.affixIn(affix) && largerEq(summax(a, [], ['er'])[1], 3+i)),
+		[`⚙️ ${AFFIX}[~sgc~] | CR ≥ ×${4+i}`]: rule((a, c) => a.affixIn(affix) && largerEq(summax(a, [], ['cr'])[1], 4+i)),
 		[`⚙️ ${AFFIX}[~sgc~] | ER+CR ≥ ×${5+i}`]: rule((a, c) => a.affixIn(affix) && largerEq(summax(a, ['er', 'cr'], [])[0], 5+i)),
-		[`⚙️ CR[~c~] | ${AFFIX}/ER ≥ ×${3+i}`]: rule((a, c) => a.affixIn('cr') && largerEq(summax(a, [], [affix, 'er'])[1], 3+i)),
-		[`⚙️ CR[~c~] | ${AFFIX}+ER ≥ ×${5+i}`]: rule((a, c) => a.affixIn('cr') && largerEq(summax(a, [affix, 'er'], [])[0], 5+i)),
 	}};
 
 	ruleset = new Ruleset(coeffsBy(), {
@@ -78,9 +80,9 @@ var ruleset, coeffsFor;
 		'⚔︎ BD[~s~] | Q ≥ 40 (off-set)': rule((a, c) => a.sands() && a.affixIn('bd') && largerEq(round(quality(a, c)), round(avg.cd * 6))),
 		'⚔︎ ER[~s~] | Q ≥ 33 (off-set)': rule((a, c) => a.affixIn('er') && largerEq(round(quality(a, c)), round(avg.cd * 5))),
 
-		'⚔︎ ED[~g~] | Q ≥ 30 (off-set)': rule((a, c) => a.goblet() && a.affixIn('ed') && largerEq(round(quality(a, c)), 30)),
+		'⚔︎ ED[~g~] | Q ≥ 31 (off-set)': rule((a, c) => a.goblet() && a.affixIn('ed') && largerEq(round(quality(a, c)), 31)),
 		'⚔︎ BD[~g~] | Q ≥ 35 (off-set)': rule((a, c) => a.goblet() && a.affixIn('bd') && largerEq(round(quality(a, c)), 35)),
-		'⚔︎ PD[~g~] | Q ≥ 35 (off-set)': rule((a, c) => a.goblet() && a.affixIn('pd') && largerEq(round(quality(a, c)), 35)),
+		'⚔︎ PD[~g~] | Q ≥ 40 (off-set)': rule((a, c) => a.goblet() && a.affixIn('pd') && largerEq(round(quality(a, c)), 40)),
 
 		'⚔︎ CV[~c~] | Q ≥ 25 (off-set)': rule((a, c) => a.affixIn('cd', 'cr') && largerEq(round(quality(a, c)), round(avg.cd * 4 - 1))),
 		'⚔︎ BD[~c~] | Q ≥ 45 (off-set)': rule((a, c) => a.circlet() && a.affixIn('bd') && largerEq(round(quality(a, c)), round(avg.cd * 7 - 1))),
@@ -108,43 +110,45 @@ var ruleset, coeffsFor;
 				'⚕️ HB[~c~] | CR+BD/EM ≥ ×3': rule((a, c) => a.affixIn('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 3)),
 			}),
 			(a) => a.setIn(...sets.cr) && rules({ // Sets with CR bonus.
-				'⚔︎ Q[~fp~] ≥ 33 (CR-set)': rule((a, c) => a.flower_plume() && largerEq(round(quality(a, c)), round(avg.cd * 5))),
-				'⚔︎ BD[~sgc~] | Q ≥ 19 (CR-set)': rule((a, c) => a.affixIn('bd') && largerEq(quality(a, c, 0), quality(average({ cr: 5 }), c, 0))),
-				'⚔︎ ED[~g~] | Q ≥ 19 (CR-set)': rule((a, c) => a.affixIn('ed') && matchSetBonus(a) && largerEq(quality(a, c, 0), quality(average({ atk: 5 }), c, 0))),
-				'⚔︎ CD[~c~] | Q ≥ 15 (CR-set)': rule((a, c) => a.affixIn('cd') && largerEq(round(quality(a, c)), round(quality(average({ atk: 4 }), c)))),
+				'⚔︎ Q[~fp~] ≥ 33 (CR-set)': rule((a, c) => a.flower_plume() && largerEq(round(quality(a, c)), round(avg.cd * 5)), false),
+				'⚔︎ BD/EM[~sgc~] | Q ≥ 19 (CR-set)': rule((a, c) => a.affixIn('bd', 'em') && largerEq(quality(a, c, 0), quality(average({ cr: 5 }), c, 0)), false),
+				'⚔︎ ED[~g~] | Q ≥ 19 (CR-set)': rule((a, c) => a.affixIn('ed') && matchSetBonus(a) && largerEq(quality(a, c, 0), quality(average({ atk: 5 }), c, 0)), false),
+				'⚔︎ CD[~c~] | Q ≥ 15 (CR-set)': rule((a, c) => a.affixIn('cd') && largerEq(round(quality(a, c)), round(quality(average({ atk: 4 }), c))), false),
 			}),
-			(a) => a.setIn(...sets.def, 'NO', 'AP', 'SHCC') && rules({ // Sets with lower DEF% requirements (for sands).
+			(a) => a.setIn(...sets.def, 'NO', 'AP', 'OHC', 'SDP', 'SHCC') && rules({ // Sets with lower DEF% requirements (for sands).
 				'⚔︎ DEF[~s~] | Q ≥ 26': rule((a, c) => a.sands() && a.affixIn('def') && largerEq(round(quality(a, c)), round(avg.cd * 4))),
 			}),
-			(a) => a.setIn(...sets.hp, 'NO', 'HD', 'TM', 'VG', 'SHCC') && rules({ // Sets with lower HP% requirements (for sands).
+			(a) => a.setIn(...sets.hp, 'NO', 'HD', 'TM', 'OHC', 'VG', 'SDP', 'SHCC') && rules({ // Sets with lower HP% requirements (for sands).
 				'⚔︎ HP[~s~] | Q ≥ 26': rule((a, c) => a.sands() && a.affixIn('hp') && largerEq(round(quality(a, c)), round(avg.cd * 4))),
 			}),
-			(a) => a.setIn(...sets.em, 'NO', 'SHCC', 'SMS') && rules({ // Sets with lower EM requirements (for sands).
+			(a) => a.setIn(...sets.em, ...likesEM, 'OHC', 'SDP') && rules({ // Sets with lower EM requirements (for sands).
 				'⚔︎ EM[~s~] | Q ≥ 26': rule((a, c) => a.sands() && a.affixIn('em') && largerEq(round(quality(a, c)), round(avg.cd * 4))),
 			}),
 			(a) => a.setIn(...sets.atk) && rules(utility('atk', +1)), // Sets with ATK bonus that wants ER% & ATK% utility parts.
-			(a) => a.setIn('NO', 'MB', 'VV', 'AP', 'SDP', 'SHCC') && rules(utility('atk')), // Sets that wants ER% & ATK% utility parts.
-			(a) => a.setIn(...sets.def, 'NO', 'MB', 'VV', 'AP', 'SDP', 'SHCC') && rules(utility('def')), // Sets that wants ER% & DEF% utility parts.
-			(a) => a.setIn(...sets.hp, 'NO', 'MB', 'VV', 'AP', 'SDP', 'SHCC') && rules(utility('hp')), // Sets that wants ER% & HP% utility parts.
-			(a) => a.setIn(...sets.em, 'NO', 'MB', 'VV', 'SDP', 'SHCC') && rules(utility('em')), // Sets that wants ER% & EM utility parts.
-			(a) => a.setIn(...sets.er, 'OHC') && rules({ // Sets with full utility rules (for all stats).
+			(a) => a.setIn('MB', 'VV', 'AP', 'OHC', 'SDP') && rules(utility('atk')), // Sets that wants ER% & ATK% utility parts.
+			(a) => a.setIn(...sets.def, 'MB', 'VV', 'AP', 'OHC', 'SDP') && rules(utility('def')), // Sets that wants ER% & DEF% utility parts.
+			(a) => a.setIn(...sets.hp, 'MB', 'VV', 'AP', 'OHC', 'SDP') && rules(utility('hp')), // Sets that wants ER% & HP% utility parts.
+			(a) => a.setIn(...sets.em, 'MB', 'VV', 'OHC', 'SDP') && rules(utility('em')), // Sets that wants ER% & EM utility parts.
+			(a) => a.setIn(...sets.er, 'NO', 'SHCC') && rules({ // Sets with full utility rules (for all stats).
 				'⚙️ ER[~fp~] | ER/BD/EM/CR ≥ ×5': rule((a, c) => a.flower_plume() && largerEq(summax(a, [], ['er', 'bd', 'em', 'cr'])[1], 5)),
 				'⚙️ ER[~fp~] | ER+(BD/EM/CR) ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 6)),
 				'⚙️ ER[~fp~] | CR+(BD/EM) ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 6)),
 				'⚙️ ER[~fp~] | ER+CR+(BD/EM) ≥ ×7': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 7)),
-				'⚙️ ER/BD/EM/CR[~sgc~] | ER/BD/EM/CR ≥ ×3': rule((a, c) => a.affixIn('er', 'bd', 'em', 'cr') && largerEq(summax(a, [], ['er', 'bd', 'em', 'cr'])[1], 3)),
+				'⚙️ ER/CR[~sc~] | ER/BD/EM/CR ≥ ×4': rule((a, c) => a.affixIn('er', 'cr') && largerEq(summax(a, [], ['er', 'bd', 'em', 'cr'])[1], 4)),
+				'⚙️ BD/EM[~sgc~] | ER/CR ≥ ×4': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, [], ['er', 'cr'])[1], 4)),
 				'⚙️ ER/CR[~sgc~] | ER+CR+(BD/EM) ≥ ×5': rule((a, c) => a.affixIn('er', 'cr') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 5)),
-				'⚙️ BD/EM[~sgc~] | ER+CR ≥ ×5': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, ['er', 'cr'], [])[0], 5)),
+				'⚙️ EM[~sgc~] | ER+CR ≥ ×5': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, ['er', 'cr'], [])[0], 5)),
+				'⚙️ BD[~sgc~] | ER+CR ≥ ×6': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, ['er', 'cr'], [])[0], 6)),
 				'⚕️ HB[~c~] | ER/BD/EM/CR ≥ ×4': rule((a, c) => a.affixIn('hb') && largerEq(summax(a, [], ['er', 'bd', 'em', 'cr'])[1], 4)),
 				'⚕️ HB[~c~] | ER+(BD/EM/CR) ≥ ×5': rule((a, c) => a.affixIn('hb') && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 5)),
 				'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×5': rule((a, c) => a.affixIn('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 5)),
 				'⚕️ HB[~c~] | ER+CR+(BD/EM) ≥ ×6': rule((a, c) => a.affixIn('hb') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 6)),
 			}),
-			(a) => a.setIn('OHC') && rules({ // Disabling HB utility rules (use in-set HB ones). // FIXME Avoid double scaling.
-				'⚕️ HB[~c~] | ER/BD/EM/CR ≥ ×4': () => false,
-				'⚕️ HB[~c~] | ER+(BD/EM/CR) ≥ ×5': () => false,
-				'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×5': () => false,
-				'⚕️ HB[~c~] | ER+CR+(BD/EM) ≥ ×6': () => false,
+			(a) => a.setIn('NO', 'SHCC') && rules({
+				'⚙️ ER/CR[~sc~] | ER/BD/EM/CR ≥ ×4': () => false, // FIXME ?
+				'⚙️ ER/CR[~sc~] | ER/BD/EM/CR ≥ ×3': rule((a, c) => a.affixIn('er', 'cr') && largerEq(summax(a, [], ['er', 'bd', 'em', 'cr'])[1], 3)),
+				'⚙️ BD/EM[~sgc~] | ER/CR ≥ ×4': () => false, // FIXME ?
+				'⚙️ BD/EM[~sgc~] | ER/CR ≥ ×3': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, [], ['er', 'cr'])[1], 3)),
 			}),
 			(a) => a.setIn('DM', 'FPL', 'SMS') && rules({ // Sets with full utility rules (when ER = BD).
 				'⚙️ EM&BD[~fp~] | (EM+BD)/ER/CR ≥ ×5': rule((a, c) => a.flower_plume() && largerEq(max(...summax(a, ['em', 'bd'], ['er', 'cr'])), 5)),
@@ -157,6 +161,8 @@ var ruleset, coeffsFor;
 				'⚙️ EM&BD/HB[~sgc~] | (EM+BD)+ER+CR ≥ 6': rule((a, c) => a.affixIn('em', 'bd', 'hb') && largerEq(summax(a, ['em', 'bd', 'er', 'cr'], [])[0], 6)),
 			}),
 
+			// TODO new Ruleset(), // Lauma: [NSU/SMS>DM/GD] EM > ER > CV & ED
+			// TODO new Ruleset(), // Lauma: [NSU>DM/GD] CV & ED & EM > 800 ER
 			// TODO new Ruleset(), // Furina: [GT] CV > HP > ED & ER
 			// TODO new Ruleset(), // Nilou: [FPL > GD/2HP/2EM] HP > EM > ER
 			// TODO new Ruleset(), // Kokomi: [OHC/GD/FPL/TM/SHCC/2EM/2ED/2HP] HB & ED > HP > ER

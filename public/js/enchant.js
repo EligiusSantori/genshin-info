@@ -62,6 +62,11 @@ function ready(target, template) {
 		},
 		on: {
 			statChange(context, name) { this.set('artifact.' + name, context.node.value); },
+			rangeSet(context, name) { context.node.closest('tr').querySelector('input[type="range"]').value = context.node.value; },
+			clear(context) {
+				this.set({ artifact: _.mapValues(Artifact.average, () => null) }, { deep: true });
+				_.each(context.node.closest('table').querySelectorAll('.stat-row input[type="range"]'), el => el.value = 0);
+			}
 		},
 		verdictAsClass: (v, n, z, p) => [v => v > 0 && p, v => v === 0 && z, v => v < 0 && n].reduce((a, f) => a || f(v), false) || null,
 		decimal: (n, d = 2, p = '') => _.isNil(n) ? p : _.round(n, d),
@@ -76,7 +81,6 @@ function ready(target, template) {
 				return r;
 			}, { })
 		},
-		clear() { this.set({ artifact: _.mapValues(Artifact.average, () => null) }, { deep: true }); },
 		summary(key, value) { this.set('summary.' + key, value); return this; },
 		message(text, verdict = null, artifact = null, formula = null) {
 			let v = this.get('verdict'), type = this.verdictAsClass(verdict, 'error', '', 'rule') || '';
@@ -94,7 +98,7 @@ function ready(target, template) {
 			this.set('coeffs', c);
 
 			if (stats_filled < 1) return; // Empty artifact stats.
-			this.set('quality', Ruleset.quality(a, c));
+			this.set('quality', formula.quality(a, c, 2));
 			if (!_.isFinite(a.level)) return; // Forecast impossible without level.
 			if (stats_filled > 4)
 				this.message("Artifact can't have more than 4 stats.", -Infinity);

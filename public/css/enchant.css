@@ -41,7 +41,7 @@ ul, ol { padding-left: 1em; }
 *:has(>.note) { position: relative; }
 .note {
 	display: inline-block; width: 1.2em; height: 1.2em;
-	position: absolute; top: 0.33em; right: 0.33em;
+	position: absolute; top: 0.4em; right: 0.33em;
 	border: thin solid var(--border-normal-color); border-radius: 50%;
 	cursor: default; /*cursor: help;*/
 	color: var(--fg-disabled-color);
@@ -93,6 +93,7 @@ nav+hr { margin: 2.5rem auto; }
 	.stat-row.disabled th { content-visibility: hidden; }
 	.quality-row { line-height: 1.5; font-size: large; }
 	.quality-row td:has(button) { padding: 0; text-align: center; }
+	.quality-row .note::after { font-family: monospace; }
 
 	input[type=number] {
 		width: 7ch;
@@ -151,10 +152,10 @@ nav+hr { margin: 2.5rem auto; }
 .messages:empty { display: none; }
 .debug { position: fixed; z-index: -1; color: rgba(255, 255, 255, 0.15); font-size: small; }
 
-@media (max-width: 1620px) {
+@media (max-width: 1700px) {
 	nav .sets img { height: 4em; }
 }
-@media (max-width: 1300px) {
+@media (max-width: 1360px) {
 	nav .sets img { height: 3em; }
 	.display { flex-basis: 100%; }
 	.summary { display: none; }

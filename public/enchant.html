@@ -67,19 +67,24 @@
 						</div>
 					</td>
 				</tr>
-				{{#each stats: name}}
+				{{#each stats: stat}}
 				<tr class="stat-row {{name == artifact.affix && 'disabled'}}">
 					<th>{{title}}</th>
-					<td><input type="number" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name]}}"
-						disabled="{{name == artifact.affix}}" /></td>
-					<td class="slider"><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[name] || 0}}"
-						disabled="{{name == artifact.affix}}" twoway="0" on-input="['statChange', name]" /></td>
-					<td class="coeff">×{{ @this.fraction(@global._.get(coeffs, name, coeffs.bd)) }}</td>
+					<td><input type="number" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[stat]}}"
+						disabled="{{stat == artifact.affix}}" on-input="['rangeSet', stat]" /></td>
+					<td class="slider"><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="0" twoway="0"
+						disabled="{{stat == artifact.affix}}" on-input="['statChange', stat]" /></td>
+					<td class="coeff">×{{ @this.fraction(@global._.get(coeffs, stat, coeffs.bd)) }}</td>
 				</tr>
 				{{/each}}
 				<tr class="quality-row">
-					<th colspan="2">Quality</th>
-					<td colspan="2"><button tabindex="-1" on-click="@this.clear()">{{{ @this.decimal(quality, 2, '&nbsp;') }}}</button></td>
+					<th colspan="2">
+						Quality
+						{{#with quality}}<span class="note" tooltip="{{ @global.formula.render(quality) }}">𝐢</span>{{/with}}
+					</th>
+					<td colspan="2"><button tabindex="-1" on-click="clear">
+						{{{ quality ? @global.formula.evaluate(quality) : '&nbsp;' }}}
+					</button></td>
 				</tr>
 			</table>
 		</article>
