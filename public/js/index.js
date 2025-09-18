@@ -97,6 +97,34 @@ var db = {
 			}
 		}
 	},
+	healers: {
+		'Bennett': { power: 2, team: false, stat: 'hp' },
+		'Chevreuse': { power: 1, team: true, stat: 'hp' }, // C6
+		'Qiqi': { power: 3, team: false, stat: 'atk' }, // off-field
+		'Escoffier': { power: 3, team: true, stat: 'atk' },
+		'Mika': { power: 2, team: true, stat: 'hp' },
+		'Diona': { power: 3, team: false, stat: 'hp' },
+		'Charlotte': { power: 2, team: true, stat: 'atk' },
+		'Furina': { power: 2, team: false, stat: 'hp' },
+		'Xingqiu': { power: 1, team: false, stat: 'hp' },
+		'Sigewinne': { power: 3, team: true, stat: 'hp' },
+		'Barbara': { power: 2, team: true, stat: 'hp' },
+		'Kokomi': { power: 3, team: false, stat: 'hp' },
+		'Kuki': { power: 2, team: false, stat: 'hp' },
+		'Dori': { power: 3, team: false, stat: 'hp' },
+		'Iansan': { power: 1, team: false, stat: 'atk' },
+		'Jean': { power: 3, team: true, stat: 'atk' },
+		'Sayu': { power: 2, team: true, stat: 'atk' },
+		'Ifa': { power: 1, team: true, stat: 'em' },
+		'Mizuki': { power: 2, team: false, stat: 'em' },
+		'Xianyun': { power: 3, team: true, stat: 'atk' },
+		'Xilonen': { power: 3, team: false, stat: 'def' },
+		'Noelle': { power: 1, team: true, stat: 'def' },
+		'Gorou': { power: 1, team: false, stat: 'def' },
+		'Yaoyao': { power: 2, team: true, stat: 'hp' },
+		'Baizhu': { power: 3, team: true, stat: 'hp' },
+		'Lauma': { power: 2, team: false, stat: 'em' }, // C1
+	},
 	characters: [
 		//{name:"Traveler", grade: 0, element:"", weapon:"", gender:"", city:"", image: "images/characters/"},
 		{name:"Aino", grade: 4, element:"Hydro", weapon:"Claymore", gender:"Female", city:"Nod-Krai", image: "images/characters/zzzzz-1753882519aino.png"},
@@ -167,6 +195,7 @@ var db = {
 		{name:"Mualani", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Female", city:"Natlan", image: "images/characters/zzzzz-1721283344mualani.png"},
 		{name:"Nahida", grade: 5, element:"Dendro", weapon:"Catalyst", gender:"Female", city:"Sumeru", image: "images/characters/zzzzz-1664483983nahidapng.png"},
 		{name:"Navia", grade: 5, element:"Geo", weapon:"Claymore", gender:"Female", city:"Fontaine", image: "images/characters/zzzzz-1699499042navia.png"},
+		{name:"Nefer", grade: 5, element:"Dendro", weapon:"Catalyst", gender:"Female", city:"Nod-Krai", image: "images/characters/zzzzz-1757415655nefer.png"},
 		{name:"Neuvillette", grade: 5, element:"Hydro", weapon:"Catalyst", gender:"Male", city:"Fontaine", image: "images/characters/zzzzz-1692266357neuvillette.png"},
 		{name:"Nilou", grade: 5, element:"Hydro", weapon:"Sword", gender:"Female", city:"Sumeru", image: "images/characters/zzzzz-1661471050niloupng.png"},
 		{name:"Ningguang", grade: 4, element:"Geo", weapon:"Catalyst", gender:"Female", city:"Liyue", image: "images/characters/ningguangpng.png"},
@@ -292,7 +321,7 @@ var db = {
 		{start: new Date("2025-07-08"), version: "5.7", type:"character", characters: ["Mavuika", "Emilie", "Iansan", "Yaoyao", "Xiangling"]},
 		{start: new Date("2025-07-30"), version: "5.8", type:"character", characters: ["Ineffa", "Citlali", "Sethos", "Xingqiu", "Fischl"]},
 		{start: new Date("2025-08-19"), version: "5.8", type:"character", characters: ["Mualani", "Chasca", "Ifa", "Ororon", "Bennett"]},
-		//{start: new Date("2025-09-"), version: "6.0", type:"character", characters: ["Lauma", "Nahida", "Barbara", "Kuki", "Kaveh"]},
+		{start: new Date("2025-09-10"), version: "6.0", type:"character", characters: ["Lauma", "Nahida", "Barbara", "Kuki", "Kaveh"]},
 		//{start: new Date("2025-"), version: "6.0", type:"character", characters: ["Flins", "Yelan", "Aino", "", ""]},
 	],
 };
