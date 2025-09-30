@@ -321,7 +321,8 @@ var db = {
 		{start: new Date("2025-07-08"), version: "5.7", type:"character", characters: ["Mavuika", "Emilie", "Iansan", "Yaoyao", "Xiangling"]},
 		{start: new Date("2025-07-30"), version: "5.8", type:"character", characters: ["Ineffa", "Citlali", "Sethos", "Xingqiu", "Fischl"]},
 		{start: new Date("2025-08-19"), version: "5.8", type:"character", characters: ["Mualani", "Chasca", "Ifa", "Ororon", "Bennett"]},
-		{start: new Date("2025-09-10"), version: "6.0", type:"character", characters: ["Lauma", "Nahida", "Barbara", "Kuki", "Kaveh"]},
-		//{start: new Date("2025-"), version: "6.0", type:"character", characters: ["Flins", "Yelan", "Aino", "", ""]},
+		{start: new Date("2025-09-10"), version: "6.0", type:"character", characters: ["Lauma", "Nahida", "Dehya", "Alhaitham", "Scaramouche", "Cyno", "Nilou", "Tighnari", "Barbara", "Kuki", "Kaveh"]},
+		{start: new Date("2025-09-30"), version: "6.0", type:"character", characters: ["Flins", "Yelan", "Aino", "Sucrose", "Dori"]},
+		//{start: new Date("2025-"), version: "6.0", type:"character", characters: ["", "", "", "", ""]},
 	],
 };
