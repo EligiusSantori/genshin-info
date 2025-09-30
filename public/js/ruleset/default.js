@@ -148,15 +148,16 @@ var ruleset, coeffsFor;
 			}),
 			(a) => a.setIn('NO', 'SHCC') && rules({
 				// '⚙️ ER/CR[~sc~] | ER/BD/EM/CR ≥ ×4': () => false, // FIXME ?
-				'⚙️ ER/CR[~sc~] | ER/BD/EM/CR ≥ ×3': rule((a, c) => a.affixIn('er', 'cr') && largerEq(summax(a, [], ['er', 'bd', 'em', 'cr'])[1], 3)),
+				'⚙️ ER[~s~] | BD/EM ≥ ×3': rule((a, c) => a.affixIn('er') && largerEq(summax(a, [], ['bd', 'em'])[1], 3)),
 				// '⚙️ BD/EM[~sgc~] | ER/CR ≥ ×4': () => false, // FIXME ?
-				'⚙️ BD/EM[~sgc~] | ER/CR ≥ ×3': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, [], ['er', 'cr'])[1], 3)),
+				'⚙️ BD/EM[~sgc~] | ER ≥ ×3': rule((a, c) => a.affixIn('bd', 'em') && largerEq(summax(a, [], ['er'])[1], 3)),
 			}),
 			(a) => a.setIn('DM', 'FPL', 'SMS') && rules({ // Sets with full utility rules (when ER = BD).
-				'⚙️ EM&BD[~fp~] | (EM+BD)/ER/CR ≥ ×5': rule((a, c) => a.flower_plume() && largerEq(max(...summax(a, ['em', 'bd'], ['er', 'cr'])), 5)),
-				'⚙️ EM&BD[~fp~] | (EM+BD)+ER/CR ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, ['em', 'bd'], ['er', 'cr'])), 6)),
-				'⚙️ EM&BD[~fp~] | ER+CR ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(summax(a, ['er', 'cr'], [])[0], 6)),
-				'⚙️ EM&BD[~fp~] | (EM+BD)+ER+CR ≥ ×7': rule((a, c) => a.flower_plume() && largerEq(summax(a, ['em', 'bd', 'er', 'cr'], [])[0], 7)),
+				'⚙️ EM&BD[~fp~] | ER/CR ≥ ×5': rule((a, c) => a.flower_plume() && largerEq(summax(a, [], ['er', 'cr'])[1], 5)),
+				'⚙️ EM&BD[~fp~] | (EM+BD)/(ER+CR) ≥ ×6': rule((a, c) => a.flower_plume() && largerEq(max(summax(a, ['em', 'bd'], [])[0], summax(a, ['er', 'cr'], [])[0]), 6)),
+				'⚙️ EM&BD[~fp~] | (EM+BD)+ER/CR ≥ ×7': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, ['em', 'bd'], ['er', 'cr'])), 7)),
+				'⚙️ EM&BD[~fp~] | (EM/BD)+ER+CR ≥ ×7': rule((a, c) => a.flower_plume() && largerEq(add(...summax(a, ['er', 'cr'], ['em', 'bd'])), 7)),
+				'⚙️ EM&BD[~fp~] | (EM+BD)+ER+CR ≥ ×8': rule((a, c) => a.flower_plume() && largerEq(summax(a, ['em', 'bd', 'er', 'cr'], [])[0], 8)),
 				'⚙️ EM&BD/ER/CR/HB[~sgc~] | (EM+BD)/ER/CR ≥ ×3': rule((a, c) => a.affixIn('em', 'bd', 'er', 'cr', 'hb') && largerEq(max(...summax(a, ['em', 'bd'], ['er', 'cr'])), 3)),
 				'⚙️ EM&BD/ER/CR/HB[~sgc~] | (EM+BD)+ER/CR ≥ 5': rule((a, c) => a.affixIn('em', 'bd', 'er', 'cr', 'hb') && largerEq(add(...summax(a, ['em', 'bd'], ['er', 'cr'])), 5)),
 				'⚙️ EM&BD/HB[~sgc~] | ER+CR ≥ 4': rule((a, c) => a.affixIn('em', 'bd', 'hb') && largerEq(summax(a, ['er', 'cr'], [])[0], 4)),
