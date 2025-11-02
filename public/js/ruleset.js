@@ -73,9 +73,9 @@ class Artifact {
 
 	setIn(...sets) { return sets.includes(this.set); }
 	flower_plume() { return this.slot < 2; }
-	sands() { return this.slot == 2; }
-	goblet() { return this.slot == 3; }
-	circlet() { return this.slot == 4; }
+	sands(...affixes) { return this.slot == 2 && (_.isEmpty(affixes) || this.affixIn(...affixes)); }
+	goblet(...affixes) { return this.slot == 3 && (_.isEmpty(affixes) || this.affixIn(...affixes)); }
+	circlet(...affixes) { return this.slot == 4 && (_.isEmpty(affixes) || this.affixIn(...affixes)); }
 	affixIn(...affixes) { return this.constructor.expand(affixes, true).includes(this.affix); }
 
 	getStats(predicate = _.identity) {
@@ -104,7 +104,7 @@ class Ruleset {
 			+ getFirstOr(coeffs, ['atk', 'bd'], 1) * (artifact.atk || 0)
 			+ getFirstOr(coeffs, ['def', 'bd'], 1) * (artifact.def || 0) / average.def * average.atk
 			+ getFirstOr(coeffs, ['hp', 'bd'], 1) * (artifact.hp || 0)
-			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0) / average.er * average.atk
+			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0) / average.er * average.cd
 			+ getFirstOr(coeffs, ['em'], 1) * (artifact.em || 0) / average.em * average.cd;
 		return _.isNil(precision) ? q : _.round(q, precision);
 	}
@@ -153,7 +153,7 @@ class Ruleset {
 			..._.map(rolls, (v, k) => ['ROLLS_' + _.upperCase(k), v]),
 			['SET', artifact.set || ''],
 			['SLOT', artifact.slot || 0], // TODO bool constants.
-			['AFFIX', artifact.affix || ''],
+			['AFFIX', artifact.affix || ''], // TODO IS_ER, IS_ATK, IS_CV...
 			['LEVEL', artifact.level || 0],
 			['Q', this.quality(artifact, coeffs)],
 		]);
@@ -197,6 +197,6 @@ formula.quality = function(artifact, coeffs, p) {
 		this._coeff(this._scale(artifact.atk || 0, average.atk, average.atk), getFirstOr(coeffs, ['atk', 'bd'], 1)),
 		this._coeff(this._scale(artifact.def || 0, average.def, average.atk), getFirstOr(coeffs, ['def', 'bd'], 1)),
 		this._coeff(this._scale(artifact.hp || 0, average.hp, average.atk), getFirstOr(coeffs, ['hp', 'bd'], 1)),
-		this._coeff(this._scale(artifact.er || 0, average.er, average.atk), getFirstOr(coeffs, ['er'], 1)),
+		this._coeff(this._scale(artifact.er || 0, average.er, average.cd), getFirstOr(coeffs, ['er'], 1)),
 		this._coeff(this._scale(artifact.em || 0, average.em, average.cd), getFirstOr(coeffs, ['em'], 1))), p);
 };
