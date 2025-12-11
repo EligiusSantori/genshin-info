@@ -1,4 +1,4 @@
-var formula, permute, distribute4;
+var formula, permute, distribute4, jaroWinkler;
 (function() {
 	permute = function*(a) {
 		let c = Array(a.length).fill(0), i = 1, k, p;
@@ -20,11 +20,60 @@ var formula, permute, distribute4;
 		}
 	}
 
-	distribute4 = function*(count) {
+	distribute4 = function*(count, predicate = Array.of) {
 		for(let a = 0; a <= count; a++)
 			for(let b = 0; b <= count - a; b++)
 				for(let c = 0; c <= count - a - b; c++)
-					yield [a, b, c, count - a - b - c];
+					yield predicate(a, b, c, count - a - b - c);
+	}
+
+	jaroWinkler = function(s1, s2) {
+	  s1 = s1.toLowerCase().trim();
+	  s2 = s2.toLowerCase().trim();
+	  if (s1 === s2) return 100;
+	  if (!s1 || !s2) return 0;
+
+	  const len1 = s1.length, len2 = s2.length;
+	  if (len1 === 0 || len2 === 0) return 0;
+	  if (Math.abs(len1 - len2) > Math.max(len1, len2) * 0.5) return 0;  // Early exit
+
+	  const maxDist = Math.floor(Math.max(len1, len2) / 2) - 1;
+	  let m1 = [], m2 = [], matches = 0;
+
+	  // Find matches
+	  for (let i = 0; i < len1; i++) {
+	    const rangeStart = Math.max(0, i - maxDist);
+	    const rangeEnd = Math.min(len2 - 1, i + maxDist);
+	    for (let j = rangeStart; j <= rangeEnd; j++) {
+	      if (m2[j] !== true && s1[i] === s2[j]) {
+	        m1[i] = true;
+	        m2[j] = true;
+	        matches++;
+	        break;
+	      }
+	    }
+	  }
+
+	  if (matches === 0) return 0;
+	  let t = 0;
+	  let p1 = 0, p2 = 0;
+	  for (let i = 0; i < len1; i++) {
+	    if (m1[i]) {
+	      while (p2 < len2 && !m2[p2]) p2++;
+	      if (s1[i] !== s2[p2]) t++;
+	      p2++;
+	    }
+	  }
+	  t /= 2;
+
+	  let jaro = ((matches / len1) + (matches / len2) + ((matches - t) / matches)) / 3;
+	  // Winkler prefix bonus
+	  let prefix = 0;
+	  for (let i = 0; i < Math.min(len1, len2, 4); i++) {
+	    if (s1[i] === s2[i]) prefix++;
+	    else break;
+	  }
+	  return jaro + (prefix * 0.1 * (1 - jaro));
 	}
 
 	function wrap(expr) {

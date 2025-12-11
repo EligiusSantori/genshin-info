@@ -26,17 +26,32 @@ class Artifact {
 	static average = Object.fromEntries(_.map(db.stats.artifact.rolls, (v, k) => [_.kebabCase(k), _.mean(v)]));
 	static elements = _.map(db.elements, v => _.kebabCase(v.name));
 	static expand(stats, self = true) {
-		return _.transform(stats, (r, s) => {
-			switch(s) {
-				case 'bd': r.push('hp', 'atk', 'def'); self && r.push(s); break;
-				case 'ed': r.push(...this.elements); self && r.push(s); break;
-				case 'pd': r.push('physical'); self && r.push(s); break;
-				case 'cv': r.push('cr', 'cd'); self && r.push(s); break;
-				default: r.push(s);
-			}
-		}, []);
+		const map = {
+			"bd": ["hp", "atk", "def"],
+			"ed": this.elements,
+			// "pd": ["physical"],
+			"cv": ["cr", "cd"],
+		};
+
+		if(!_.isArray(stats))
+			return _.reduce(stats, (r, v, s) => {
+				if(!_.isEmpty(map[s])) {
+					for(const e of map[s]) r[e] = v;
+					if(self) r[s] = v
+				} else
+					r[s] = v;
+				return r;
+			}, { });
+		else
+			return _.uniq(_.transform(stats, (r, s) => {
+				if(!_.isEmpty(map[s])) {
+					r.push(...map[s]);
+					self && r.push(s);
+				} else
+					r.push(s);
+			}, []));
 	}
-	static shorten(stats, self = true) {
+	static shorten(stats, self = true) { // TODO Object support.
 		return _.transform(stats, (r, s) => {
 			switch(true) {
 				case ['hp', 'atk', 'def'].includes(s): r.push('bd'); self && r.push(s); break;
@@ -55,20 +70,13 @@ class Artifact {
 	}
 
 	constructor(data = null) {
-		[this.set, this.slot, this.affix, this.level] = [null, 0, null, 0];
-		Object.assign(this, _.mapValues(this.constructor.average, () => null));
-		_.isEmpty(data) || Object.assign(this, data);
-	}
-
-	valid() {
-		let a = new this.constructor();
-		a.level = parseInt(this.level);
-		a.slot = parseInt(this.slot);
-		a.set = this.set || null;
-		a.affix = this.affix != 'hp_atk' ? this.affix : null;
-		for (let k in this.constructor.average)
-			a[k] = (_.isString(this[k]) || _.isFinite(this[k])) && k != this.affix ? parseFloat(this[k]) : null;
-		return a;
+		this.set = !data?.set ? null : data.set;
+		this.slot = _.isNil(data?.slot) ? 0 : parseInt(data.slot);
+		this.affix = !data?.affix || data.affix == 'hp_atk' ? null : data.affix;
+		this.level = _.isNil(data?.level) ? 0 : parseInt(data.level);
+		for(let k in this.constructor.average)
+			this[k] = k != this.affix && (_.isString(data?.[k]) || _.isFinite(data?.[k]))
+				? parseFloat(data[k]) : undefined;
 	}
 
 	setIn(...sets) { return sets.includes(this.set); }
@@ -86,10 +94,18 @@ class Artifact {
 		return _.transform(this.constructor.average, (r, v, k) => r[k] = predicate(_.isFinite(this[k]) ? this[k] / v : 0), { });
 	}
 
-	toDisplay() {
-		return _.pickBy(this.getStats(v => _.round(v, 1)), v => v > 0);
-		// return _.mapKeys(stats, (v, k) => k != 'em' ? k + '%' : k);
+	clearStats(...stats) {
+		for(const stat of stats)
+			this[stat] = null;
+		return this;
 	}
+
+	// TODO validate()
+
+	// toDisplay() {
+	// 	return _.pickBy(this.getStats(v => _.round(v, 1)), v => v > 0);
+	// 	// return _.mapKeys(stats, (v, k) => k != 'em' ? k + '%' : k);
+	// }
 
 	// toString() {
 	// 	return '(' + _.join(_.map(stats, (v, k) => k.toUpperCase() + ': ' + (k != 'em' ? v + '%' : v), ' | ') + ')';
@@ -104,8 +120,8 @@ class Ruleset {
 			+ getFirstOr(coeffs, ['atk', 'bd'], 1) * (artifact.atk || 0)
 			+ getFirstOr(coeffs, ['def', 'bd'], 1) * (artifact.def || 0) / average.def * average.atk
 			+ getFirstOr(coeffs, ['hp', 'bd'], 1) * (artifact.hp || 0)
-			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0) / average.er * average.cd
-			+ getFirstOr(coeffs, ['em'], 1) * (artifact.em || 0) / average.em * average.cd;
+			+ getFirstOr(coeffs, ['er'], 1) * (artifact.er || 0) / average.er * average.atk
+			+ getFirstOr(coeffs, ['em'], 1) * (artifact.em || 0) / average.em * average.atk;
 		return _.isNil(precision) ? q : _.round(q, precision);
 	}
 	static rollsSumMax(artifact, sum, max, mergeCV = false, useFormula = true, precision = 1) {
@@ -121,25 +137,33 @@ class Ruleset {
 		const [fnSum, fnMax] = useFormula ? [formula.add, formula.max] : [math.add, math.max];
 		return [toSum.length > 1 ? fnSum(...toSum) : (toSum[0] || 0), toMax.length > 1 ? fnMax(...toMax) : (toMax[0] || 0)];
 	}
-	static dedouble(artifact, coeffs, ...stats) {
-		let keep = [], max = null;
-		stats = Artifact.expand(stats, false);
-		if(!stats.length) {
-			stats = Artifact.expand(['bd'], false); // Dedoubling only ATK%/DEF%/HP% by default.
-			keep = _.filter(stats, s => coeffs[s] > 0); // Preventing reseting of explicitly specified coeffs by default.
+	static dedouble(artifact, coeffs, ...groups) { // Returns array of stats to reset.
+		coeffs = Artifact.expand(coeffs, false);
+		groups = _.map(groups, stats => Artifact.expand(_.isArray(stats) ? stats : [stats], false));
+
+		// Searching best stat among dedoubling ones.
+		let max = 0, index = -1;
+		const rolls = artifact.getRolls();
+		end: for(let i = 0, value = 0; i < groups.length; i++, value = 0) {
+			for(let stat of groups[i]) {
+				if(stat === artifact.affix) { // Use group that contain artifact affix.
+					index = i;
+					break end;
+				} else
+					value += (rolls[stat] || 0) * _.get(coeffs, stat, 1);
+			}
+			if(value > max) { // Use group with biggest rolls * coeffs value.
+				max = value;
+				index = i;
+			}
 		}
-		if(stats.includes(artifact.affix)) // All except artifact affix are subject to reset.
-			max = artifact.affix;
-		else { // Searching best stat among dedoubling ones.
-			stats = _.filter(stats, s => coeffs[s] !== 0); // Excluding already disabled coeffs.
-			const rolls = _.pick(artifact.getRolls(), stats);
-			max = _.maxBy(stats, s => rolls[s] || 0);
-			if(_.isEmpty(rolls[max])) return coeffs; // Preventing reseting of inexisted coeffs.
-		}
-		return this.resetIn(coeffs, ..._.without(stats, max, ...keep));
-	}
-	static resetIn(coeffs, ...stats) {
-		return Artifact.expand(stats, true).reduce((r, s) => { r[s] = 0; return r; }, _.clone(coeffs));
+
+		// Flattening groups excluding best one.
+		return _.reduce(groups, (r, g, i) => {
+			if(i != index)
+				r.push(...g);
+			return r;
+		}, []);
 	}
 	static disabledIn(coeffs, stat) {
 		return getFirstOr(coeffs, Artifact.shorten([stat], true).reverse(), -1) == 0;
@@ -197,6 +221,6 @@ formula.quality = function(artifact, coeffs, p) {
 		this._coeff(this._scale(artifact.atk || 0, average.atk, average.atk), getFirstOr(coeffs, ['atk', 'bd'], 1)),
 		this._coeff(this._scale(artifact.def || 0, average.def, average.atk), getFirstOr(coeffs, ['def', 'bd'], 1)),
 		this._coeff(this._scale(artifact.hp || 0, average.hp, average.atk), getFirstOr(coeffs, ['hp', 'bd'], 1)),
-		this._coeff(this._scale(artifact.er || 0, average.er, average.cd), getFirstOr(coeffs, ['er'], 1)),
-		this._coeff(this._scale(artifact.em || 0, average.em, average.cd), getFirstOr(coeffs, ['em'], 1))), p);
+		this._coeff(this._scale(artifact.er || 0, average.er, average.atk), getFirstOr(coeffs, ['er'], 1)),
+		this._coeff(this._scale(artifact.em || 0, average.em, average.atk), getFirstOr(coeffs, ['em'], 1))), p);
 };
