@@ -90,7 +90,16 @@ nav+hr { margin: 2.5rem auto; }
 	.level-row { line-height: 2; font-size: large; }
 	.level-row th+td { text-align: right; font-size: larger; }
 	.stat-row td:has(input[type=number]) { padding: 0; }
-	.stat-row.disabled th { content-visibility: hidden; }
+	.stat-row.disabled {
+		color: var(--fg-disabled-color);
+		th { content-visibility: hidden; }
+	}
+	.stat-row.unused {
+		color: var(--fg-disabled-color);
+		input[type=number] { color: inherit; }
+		input[type=range] { opacity: 0.6; }
+	}
+
 	.quality-row { line-height: 1.5; font-size: large; }
 	.quality-row td:has(button) { padding: 0; text-align: center; }
 	.quality-row .note::after { font-family: monospace; }
@@ -155,10 +164,72 @@ nav+hr { margin: 2.5rem auto; }
 @media (max-width: 1700px) {
 	nav .sets img { height: 4em; }
 }
-@media (max-width: 1360px) {
-	nav .sets img { height: 3em; }
-	.display { flex-basis: 100%; }
-	.summary { display: none; }
-	/*.summary table { float: none; margin: 0 auto 1em auto; }*/
-	.display table { float: none; margin: 0 auto 1.5em auto; }
+
+/*.summary table { float: none; margin: 0 auto 1em auto; }*/
+/*.display table { float: none; margin: 0 auto 1.5em auto; }*/
+
+#loading {
+	position: fixed;
+	inset: 0;
+	background: rgba(0,0,0,0.8);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	pointer-events: none;
+}
+#loading:not(.hidden) {
+	opacity: 1;
+	pointer-events: auto;
+}
+.ocr-modal {
+	background: var(--doc-bg-color);
+	color: var(--fg-normal-color);
+	padding: 2rem;
+	border-radius: 1rem;
+	text-align: center;
+	box-shadow: 0 0 2rem var(--fg-promising-color);
+	min-width: 20rem;
+	max-width: 90vw;
+}
+.spinner {
+	width: 4rem;
+	height: 4rem;
+	border: 4px solid var(--border-normal-color);
+	border-top-color: var(--fg-promising-color);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	margin: 0 auto 1rem auto;
+}
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.progress-bar {
+	background: var(--border-normal-color);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	-webkit-appearance: none;
+}
+.progress-bar::-webkit-progress-bar {
+	background: var(--border-normal-color);
+	border-radius: 0.5rem;
+}
+.progress-bar::-webkit-progress-value {
+	background: var(--fg-promising-color);
+	transition: width 0.3s ease;
+}
+.progress-bar::-moz-progress-bar {
+	background: var(--fg-promising-color);
+	transition: width 0.3s ease;
+}
+.progress-text {
+	font-family: monospace;
+	font-size: 1.2rem;
+	font-weight: bold;
+	min-width: 4rem;
+	text-align: center;
 }

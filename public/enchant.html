@@ -9,15 +9,25 @@
 	<script src="https://cdn.jsdelivr.net/npm/mathjs@14.6.0/lib/browser/math.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/ractive@1.4.4/ractive.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/textile-js@2.1.1/lib/textile.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
 	<script src="js/formula.js"></script>
 	<script defer src="js/index.js"></script>
 	<script defer src="js/ruleset.js"></script>
 	<script defer src="js/ruleset/default.js"></script>
+	<script defer src="js/ocr.js"></script>
 	<script defer src="js/enchant.js"></script>
 </head>
 <body>
 	<div id="content"></div>
 	<script id="layout" type="text/ractive">
+		<div id="loading" class="ocr-overlay" style="visibility: {{ loading ? 'visible' : 'hidden' }};">
+			<div class="ocr-modal">
+				<div class="spinner"></div>
+				<p>Extracting artifact data from screenshot.</p>
+				<progress class="progress-bar" value="{{ loading ? loading.progress : 0 }}" max="100"></progress>
+				<div class="progress-text">{{ loading.message }}</div>
+			</div>
+		</div>
 		<nav>
 			<section class="sets radio-panel">
 			{{#each sets: i}}
@@ -61,19 +71,20 @@
 					</td>
 					<td rowspan="9">
 						<div class="radio-panel">
-						{{#each affixes: name}}
-							<label class="radio-pane"><input type="radio" name="{{artifact.affix}}" value="{{name}}" />{{.}}</label>
+						{{#each affixes: affix}}
+							<label class="radio-pane"><input type="radio" name="{{artifact.affix}}" value="{{affix}}" />{{.}}</label>
 						{{/each}}
 						</div>
 					</td>
 				</tr>
 				{{#each stats: stat}}
-				<tr class="stat-row {{name == artifact.affix && 'disabled'}}">
+				<tr class="stat-row" class-disabled="stat == artifact.affix"
+						class-unused="!@global._.isNil(artifact[stat]) && unused.includes(stat)">
 					<th>{{title}}</th>
 					<td><input type="number" min="{{min}}" max="{{max}}" step="{{step}}" value="{{artifact[stat]}}"
-						disabled="{{stat == artifact.affix}}" on-input="['rangeSet', stat]" /></td>
-					<td class="slider"><input type="range" min="{{min}}" max="{{max}}" step="{{step}}" value="0" twoway="0"
-						disabled="{{stat == artifact.affix}}" on-input="['statChange', stat]" /></td>
+						disabled="{{stat == artifact.affix}}" on-input="['rangeSync', stat]" /></td>
+					<td class="slider"><input name="{{stat}}" type="range" min="{{min}}" max="{{max}}" step="{{step}}"
+						value="0" twoway="0" disabled="{{stat == artifact.affix}}" on-input="['statChange', stat]" /></td>
 					<td class="coeff">×{{ @this.fraction(@global._.get(coeffs, stat, coeffs.bd)) }}</td>
 				</tr>
 				{{/each}}
@@ -91,28 +102,25 @@
 		<aside class="display">
 			<table class="messages">
 			{{#if artifact && messages.length > 0}}
-				<tr>
-					<th></th>
-				{{#each @this.filled(4)}}
-					<td>{{.}}</td>
-				{{/each}}
-				</tr>
+				{{#with @this.filled(4) as filled }}
+					<tr><th></th>{{#each filled}}<td>{{.}}</td>{{/each}}</tr>
+					{{#each messages}}
+						<tr class="{{type}}">
+							<th colspan="{{type == 'error' ? 5 : 1}}">
+								{{{@global.textile(text)}}}
+								{{#with formula}}<span class="note" tooltip="{{.}}">𝐢</span>{{/with}}
+							</th>
+						{{#each filled}}
+							<td>{{@global._.round(artifact ? artifact[@key] : null, 1) || ''}}</td>
+						{{/each}}
+						</tr>
+					{{/each}}
+				{{/with}}
 			{{/if}}
-			{{#each messages}}
-				<tr class="{{type}}">
-					<th colspan="{{type == 'error' ? 5 : 1}}">
-						{{{@global.textile(text)}}}
-						{{#with formula}}<span class="note" tooltip="{{.}}">𝐢</span>{{/with}}
-					</th>
-				{{#each artifact ? artifact.toDisplay() : []}}
-					<td>{{.}}</td>
-				{{/each}}
-				</tr>
-			{{/each}}
 			</table>
 		</aside>
 		{{#if @this.constructor.DEBUG}}
-		<samp class="debug" style="bottom: 0.33em; right: 0.5em;">{{ JSON.stringify(artifact.valid()) }}</samp>
+		<samp class="debug" style="bottom: 0.33em; right: 0.5em;">{{ _status }}</samp>
 		{{/if}}
 	</script>
 	<script type="text/javascript">

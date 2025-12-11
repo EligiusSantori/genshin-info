@@ -46,24 +46,29 @@ function ready(target, template) {
 		target: target,
 		template: template,
 		data: {
-			artifact: _.set(new Artifact(), 'level', 20),
+			artifact: new Artifact({ level: 20 }),
 			coeffs: coeffsFor(),
+			unused: [],
 			quality: null,
 			verdict: undefined,
-			summary: { },
+			summary: {},
 			messages: [],
+			loading: null,
 
 			approx: true,
 			sets: [...this.setsChunk()],
+			status: { message: null, until: null },
 		},
 		computed: {
 			stats() { return statsDisplay(db.stats.artifact.rolls, Artifact.average, this.get('approx')); },
 			affixes() { return affixesDisplay(this.get('artifact.slot'), db.stats.artifact.major, db.elements); },
+			_status() { return this.get('status.message') || JSON.stringify(new Artifact(this.get('artifact'))); }
 		},
 		on: {
-			statChange(context, name) { this.set('artifact.' + name, context.node.value); },
-			rangeSet(context, name) { context.node.closest('tr').querySelector('input[type="range"]').value = context.node.value; },
+			statChange(context, stat) { this.uiSyncArtifactStat(context, stat); }, // Pass event to debounced function.
+			rangeSync(context, stat) { this.uiSyncStatRange(context, stat); }, // Pass event to debounced function.
 			clear(context) {
+				this.set('unused', []);
 				this.set({ artifact: _.mapValues(Artifact.average, () => null) }, { deep: true });
 				_.each(context.node.closest('table').querySelectorAll('.stat-row input[type="range"]'), el => el.value = 0);
 			}
@@ -81,6 +86,19 @@ function ready(target, template) {
 				return r;
 			}, { })
 		},
+
+		uiSyncArtifactStat: _.debounce(function(context, stat) { // Sync
+			this.set('artifact.' + stat, context.node.value);
+		}, 10, { leading: false, trailing: true, maxWait: 10 }),
+		uiSyncStatRange: _.debounce(function(context, stat) { // Sync range element from number element.
+			context.node.closest('tr').querySelector('input[type="range"]').value = context.node.value;
+		}, 10, { leading: false, trailing: true, maxWait: 10 }),
+		uiSyncAllRanges() {
+			_.map(this.get('artifact').getStats(), (value, stat) => {
+				this.el.querySelector(`input[name="${stat}"]`).value = value || 0;
+			});
+		},
+
 		summary(key, value) { this.set('summary.' + key, value); return this; },
 		message(text, verdict = null, artifact = null, formula = null) {
 			let v = this.get('verdict'), type = this.verdictAsClass(verdict, 'error', '', 'rule') || '';
@@ -93,29 +111,29 @@ function ready(target, template) {
 			this.message(name, +Infinity, artifact, f);
 		},
 		calculate() {
-			let a = this.get('artifact').valid(), c = coeffsFor(a),
-				stats_filled = _.sumBy(_.keys(Artifact.average), k => a[k] > 0 ? 1 : 0);
-			this.set('coeffs', c);
+			let artifact = new Artifact(this.get('artifact')), coeffs,
+				stats_filled = _.sumBy(_.keys(Artifact.average), k => artifact[k] > 0 ? 1 : 0);
+			this.set('coeffs', coeffs = coeffsFor(artifact));
+			this.set('unused', Ruleset.dedouble(artifact,  coeffs, ...groupsFor(artifact)));
 
-			if (stats_filled < 1) return; // Empty artifact stats.
-			this.set('quality', formula.quality(a, c, 2));
-			if (!_.isFinite(a.level)) return; // Forecast impossible without level.
-			if (stats_filled > 4)
+			if(stats_filled < 1) return; // Empty artifact stats.
+			this.set('quality', formula.quality(artifact, coeffs, 2));
+			if(!_.isFinite(artifact.level)) return; // Forecast impossible without level.
+			if(stats_filled > 4)
 				this.message("Artifact can't have more than 4 stats.", -Infinity);
-			if (this.get('verdict') < 0) return; // There are critical errors.
+			if(this.get('verdict') < 0) return; // There are critical errors.
 
-			_.reduce(Artifact.average, (_, v, k) => a[k] = a[k] > 0 ? a[k] : 0, null); // Default values for the scope.
-			let rolls = Math.floor(a.level / 4), left = 5 - rolls, variants = forecast(a, Artifact.average, left);
+			_.reduce(Artifact.average, (_, v, k) => artifact[k] = artifact[k] > 0 ? artifact[k] : 0, null); // Default values for the scope.
+			let rolls = Math.floor(artifact.level / 4), left = 5 - rolls, variants = forecast(artifact, Artifact.average, left);
 			this.summary('rolls', `${rolls} / ${left}`).summary('forecasts', variants.length), rules = 0;
-			for(let { name, rule, coeffs } of ruleset.for(a)) {
+			for(let { name, rule, coeffs } of ruleset.for(artifact)) {
 				for(const variant of variants) {
-					let expr = _.isFunction(rule) ? rule.call(ruleset, variant, coeffs) : rule,
-						is = expr instanceof math.Node ? formula.evaluate(expr, Ruleset.scope(variant, coeffs)) : expr;
+					let a = new Artifact(variant), expr = _.isFunction(rule) ? rule.call(ruleset, a, coeffs) : rule,
+						is = expr instanceof math.Node ? formula.evaluate(expr, Ruleset.scope(a, coeffs)) : expr;
 					if(!_.isBoolean(is))
 						this.message(`Unsupported rule ${name}.`, -Infinity);
 					else if(is) {
-						// console.log(name, coeffs, variant);
-						this.promising(name, expr, variant);
+						this.promising(name, expr, a); // Sending possibly changed (in rule fn) artifact to preview.
 						break;
 					}
 				}
@@ -124,6 +142,41 @@ function ready(target, template) {
 			_.isNil(this.get('verdict')) && this.set('verdict', 0);
 			this.summary('rules', rules);
 		},
+		paste(clipboard, event) {
+			let blob = null;
+			if(clipboard?.items?.length)
+				blob = _.head(Array.from(clipboard.items)
+					.filter(item => item.type?.startsWith('image/')))
+					?.getAsFile();
+			if(blob)
+				event.preventDefault();
+			else
+				return this.setStatus('No valid image found in clipboard.');
+
+			this.set('loading', { progress: 0,message: 'Loading...' });
+			temporaryImage(blob, async(image) => {
+				let parts = await ocrParseScreenshot(image, (progress, worker) => {
+					this.set('loading.progress', Math.round(progress * 100));
+					console.debug(Math.round(progress * 100) + '%', worker);
+				});
+				let artifact = ocrParseArtifact(parts);
+				// TODO If average rolls averagefy the artifact.
+				this.set({ artifact }, { deep: true });
+				this.uiSyncAllRanges();
+				this.set('loading', null); // setTimeout(() => this.set('loading', null), 1000);
+			}, (e) => {
+				this.set('loading', null);
+				console.error('OCR:', e);
+				return e;
+			});
+		},
+		setStatus(message, seconds = 3) {
+			this.set('status.message', message);
+			this.set('status.until', (until => { until.setSeconds(until.getSeconds() + seconds); return until; })(new Date()));
+		},
+		// oncomplete: function() {
+		// 	TODO Setup OCR engine.
+		// }
 	});
 
 	const refresh = _.debounce(function() {
@@ -132,7 +185,7 @@ function ready(target, template) {
 		this.set('messages', []);
 		this.set('summary', { });
 		this.calculate();
-	}, 100);
+	}, 100, { leading: false, trailing: true });
 	ractive.observe('artifact.*', function(value, old, path) {
 		if(path == 'artifact.slot') {
 			const affixes = this.get('affixes'), _default = 'atk';
@@ -141,4 +194,14 @@ function ready(target, template) {
 		}
 		refresh.call(this);
 	});
+
+	const timer = setInterval(() => {
+		const until = ractive.get('status.until');
+		if(!(until instanceof Date) || until < new Date()) {
+			ractive.set('status.message', null);
+			ractive.set('status.until', null);
+		}
+	}, 1000);
+
+	document.addEventListener('paste', async(e) => ractive.paste(e.clipboardData, e));
 }
