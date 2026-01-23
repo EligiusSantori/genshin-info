@@ -7,7 +7,7 @@ var ruleset, coeffsFor, groupsFor;
 
 	// Database tweaks.
 	let sets = _.cloneDeep(db.stats.sets);
-	const elementalWide = ['NO', 'RB', 'TM', 'ESF', 'MH', 'GT', 'SHCC', 'OC', 'LNO'];
+	const elementalWide = ['NO', 'RB', 'TM', 'ESF', 'MH', 'GT', 'SHCC', 'OC', 'LNO', 'DCRW'];
 	sets.pyro.push('SR', 'FPL', 'VG', 'FHW', 'UR'); // Yoimiya / Hu Tao, Dehya, Arlecchino, burgeon, burning.
 	sets.hydro.push('OHC', 'FPL', 'SDP'); // Kokomi, Sigewinne, bloom.
 	sets.electro.push('EO', 'FPL', 'FHW'); // Keqing, Clorinde, hyperbloom.
@@ -18,8 +18,8 @@ var ruleset, coeffsFor, groupsFor;
 	const lovesDEF = [...sets.def, 'NO', 'MB', 'AP', 'OHC', 'MH'];
 	const lovesHP = [...sets.hp, 'NO', 'MB', 'CWF', 'HD', 'ESF', 'OHC', 'FPL'/*?*/, 'MH', 'GT', 'SDP', 'OC'];
 	const neglectsEM = ['BC', 'AP', 'BS', 'PF', 'HOD', 'NWEW', 'FDG'];
-	const lovesEM = ['SR', 'DM', 'OC', 'SMS'];
-	const mainsEM = ['CWF', 'FPL', 'ND'/*Tartaglia*/];
+	const lovesEM = ['CWF', 'SR', 'DM', 'ND'/*Tartaglia*/, 'OC', 'SMS'];
+	const mainsEM = ['FPL'];
 
 	const toBase = fraction(3, 4), toCrit = math.divide(1, toBase),
 		baseLower = math.multiply(math.divide(1, toBase), fraction(2, 4)),
@@ -27,7 +27,7 @@ var ruleset, coeffsFor, groupsFor;
 	const coeffsBySet = [ // Tailing conditions have higher priority.
 		[{ cd: 1, cr: 2, atk: 1, def: baseLower, hp: baseLower, er: baseLower, em: baseLower }],
 		[...lovesDEF, { def: 1 }],
-		[...lovesHP, { hp: 1 }],
+		[...lovesHP, 'AMM', { hp: 1 }],
 		[...sets.atk, 'WT', 'GD', { def: 0, hp: 0 }],
 		[...sets.def, { hp: 0 }],
 		[...sets.hp, { def: 0 }],
@@ -161,7 +161,7 @@ var ruleset, coeffsFor, groupsFor;
 			(a) => a.setIn(...sets.atk) && rules(utility('atk', true)), // Widespread sets with ATK bonus that wants ER% & ATK% utility parts.
 			(a) => a.setIn('MB', 'VV') && rules(utility('def', true)), // Sets that wants low-priority ER% & DEF% utility parts.
 			(a) => a.setIn('VV') && rules(utility('hp', true)), // Sets that wants low-priority ER% & HP% utility parts.
-			(a) => a.setIn('WT', 'MB', 'AP', 'NSU') && rules(utility('em', true)), // Combat sets that wants ER% & EM utility parts.
+			(a) => a.setIn('WT', 'MB', 'AP', 'NSU', 'AMM') && rules(utility('em', true)), // Combat sets that wants ER% & EM utility parts.
 
 			(a) => a.setIn(...sets.er, 'NO', 'SHCC') && rules({ // Sets with full utility rules (for all stats).
 				'⚙️ [ER+] [~fp~] | ER/CR ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['er', 'cr']), 5)),
