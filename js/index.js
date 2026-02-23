@@ -378,6 +378,7 @@ var db = {
 		{start: new Date("2026-12-23"), version: "6.2", type:"character", characters: ["Varesa", "Xilonen", "Iansan", "Chevreuse", "Gaming"]},
 		{start: new Date("2026-01-14"), version: "6.3", type:"character", characters: ["Columbina", "Ineffa", "Sethos", "Fischl", "Ifa"]},
 		{start: new Date("2026-02-03"), version: "6.3", type:"character", characters: ["Zibai", "Neuvillette", "Illuga", "Aino", "Gorou"]},
+		{start: new Date("2026-02-25"), version: "6.4", type:"character", characters: ["Varka", "Flins", "Eula", "Mona", "Albedo", "Klee", "Diluc", "Jean", "Bennett", "Xiangling", "Sucrose"]},
 		// {start: new Date("2026-"), version: "6.0", type:"character", characters: ["", "", "", "", ""]},
 	],
 };

@@ -15,8 +15,8 @@ var ruleset, coeffsFor, groupsFor;
 	sets.dendro.push('WT', 'GD', 'FPL', 'UR'); // Tighnari, Nahida, bloom, burning.
 	sets.pd.push('OHC'); // Qiqi.
 	const usedByHealers = [...sets.hb, 'NO', 'VV', 'DM', 'SHCC'];
-	const lovesDEF = [...sets.def, 'NO', 'MB', 'AP', 'OHC', 'MH'];
-	const lovesHP = [...sets.hp, 'NO', 'MB', 'CWF', 'HD', 'ESF', 'OHC', 'FPL'/*?*/, 'MH', 'GT', 'SDP', 'OC'];
+	const lovesDEF = [...sets.def, 'NO', 'MB', 'AP', 'OHC', 'MH', 'NSU'];
+	const lovesHP = [...sets.hp, 'NO', 'MB', 'CWF', 'HD', 'ESF', 'OHC', 'FPL'/*?*/, 'MH', 'GT', 'SDP', 'OC', 'NSU', 'SMS', 'AMM'];
 	const neglectsEM = ['BC', 'AP', 'BS', 'PF', 'HOD', 'NWEW', 'FDG'];
 	const lovesEM = ['CWF', 'SR', 'DM', 'ND'/*Tartaglia*/, 'OC', 'SMS'];
 	const mainsEM = ['FPL'];
@@ -27,7 +27,7 @@ var ruleset, coeffsFor, groupsFor;
 	const coeffsBySet = [ // Tailing conditions have higher priority.
 		[{ cd: 1, cr: 2, atk: 1, def: baseLower, hp: baseLower, er: baseLower, em: baseLower }],
 		[...lovesDEF, { def: 1 }],
-		[...lovesHP, 'AMM', { hp: 1 }],
+		[...lovesHP, { hp: 1 }],
 		[...sets.atk, 'WT', 'GD', { def: 0, hp: 0 }],
 		[...sets.def, { hp: 0 }],
 		[...sets.hp, { def: 0 }],
@@ -96,7 +96,7 @@ var ruleset, coeffsFor, groupsFor;
 	}};
 
 	ruleset = new Ruleset(coeffsBy(), {
-		'⚙️ ER ≥ 30% (off-set)': rule(false, a => a.er >= 30), // Mostly for Mona.
+		'⚙️ ER ≥ 30% (off-set)': rule(false, a => !a.sands() && a.er >= 30), // Mostly for Mona.
 		'⚙️ ER+CR ≥ ×7 (off-set)': rule(false, a => largerEq(rSum(a, ['er', 'cr']), 7)), // Mostly for Rosaria.
 		'⚔︎ EM[~sgc~] | Q ≥ 5×CD (off-set)': rule((a, c) => a.affixIn('em') && qLargerEq(a, c, { cd: 5 })),
 
@@ -109,48 +109,51 @@ var ruleset, coeffsFor, groupsFor;
 		'⚔︎ BD[~g~] | Q ≥ 6×CD (off-set)': rule((a, c) => a.goblet('bd') && qLargerEq(a, c, { cd: 6 })),
 		'⚔︎ PD[~g~] | Q ≥ 6×CD (off-set)': rule((a, c) => a.goblet('pd') && qLargerEq(a, c, { cd: 6 })),
 
-		'⚔︎ CV[~c~] | Q ≥ 4×CD (off-set)': rule((a, c) => a.circlet('cv') && qLargerEq(a, c, { cd: 4 })),
+		'⚔︎ CV[~c~] | CV ≥ ×4 (off-set)': rule((a, c) => a.circlet('cv') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+		'⚔︎ CV[~c~] | Q ≥ 5×CD (off-set)': rule((a, c) => a.circlet('cv') && qLargerEq(a, c, { cd: 5 })),
 		'⚔︎ BD[~c~] | Q ≥ 7×CD (off-set)': rule((a, c) => a.circlet('bd') && qLargerEq(a, c, { cd: 7 })),
 		'⚕️ HB[~c~] | BD/EM/ER/CV ≥ ×5 (off-set)': rule(a => a.circlet('hb') && largerEq(summax(a, [], [], true)[1], 5)),
 		'⚕️ HB[~c~] | ER+(BD/EM/CV) ≥ ×6 (off-set)': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'er', [], true)), 6)),
-		'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×6 (off-set)': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 6)),
+		'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×7 (off-set)': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 7)),
 	}, [
 		new Ruleset((a) => coeffsBy(a.set), { // Set dependant category.
 			'⚔︎ Q[~fp~] ≥ 6×CD': rule((a, c) => a.flower_plume() && qLargerEq(a, c, { cd: 6 })),
 
-			'⚔︎ ATK/ER[~s~] | Q ≥ 4×CD': rule((a, c) => a.sands('atk', 'er') && qLargerEq(a, c, { cd: 4 })),
-			'⚔︎ HP&DEF[~s~] | Q ≥ 5×CD': rule((a, c) => a.sands('hp', 'def') && qLargerEq(a, c, { cd: 5 })),
+			'⚔︎ ATK/ER[~s~] | CV ≥ ×4': rule((a, c) => a.sands('atk', 'er') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+			'⚔︎ BD/ER[~s~] | Q ≥ 5×CD': rule((a, c) => a.sands('bd', 'er') && qLargerEq(a, c, { cd: 5 })),
 
 			'⚔︎ BD[~g~] | Q ≥ 5×CD': rule((a, c) => a.goblet('bd') && qLargerEq(a, c, { cd: 5 })),
 
-			'⚔︎ CD[~c~] | Q ≥ 3×CD': rule((a, c) => a.circlet('cd') && qLargerEq(a, c, { cd: 3 })),
-			'⚔︎ CR[~c~] | Q ≥ 3×CD': rule((a, c) => a.circlet('cr') && !a.setIn(...sets.cr) && qLargerEq(a, c, { cd: 3 })), // Using another rule for CR+ sets.
+			'⚔︎ CD[~c~] | Q ≥ 5×BD': rule((a, c) => a.circlet('cd') && largerEq(quality(a, c, 0), 5*5)),
+			'⚔︎ CR[~c~] | Q ≥ 5×BD': rule((a, c) => a.circlet('cr') && !a.setIn(...sets.cr) && largerEq(quality(a, c, 0), 5*5)), // Using another rule for CR+ sets.
 			'⚔︎ BD[~c~] | Q ≥ 6×CD': rule((a, c) => a.circlet('bd') && qLargerEq(a, c, { cd: 6 })),
 		}, [
 			(a) => matchSetBonus(a) && rules({ // In-set goblets & helmets.
-				'⚔︎ ED[~g~] | Q ≥ 4×CD': rule((a, c) => a.goblet('ed') && qLargerEq(a, c, { cd: 4 })),
-				'⚔︎ PD[~g~] | Q ≥ 5×CD': rule((a, c) => a.goblet('pd') && qLargerEq(a, c, { cd: 5 })),
+				'⚔︎ ED[~g~] | CV ≥ ×4': rule((a, c) => a.goblet('ed') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+				'⚔︎ ED[~g~] | Q ≥ 5×CD': rule((a, c) => a.goblet('ed') && qLargerEq(a, c, { cd: 5 })),
+				'⚔︎ PD[~g~] | CV ≥ ×5': rule((a, c) => a.goblet('pd') && largerEq(rSum(a, ['cr', 'cd']), 5)),
 
 				'⚕️ HB[~c~] | ER+(CV/BD/EM) ≥ ×3': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'er', [], true)), 3)),
 				'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×3': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 3)),
 			}),
 			(a) => a.setIn(...sets.cr) && rules({ // Sets with CR bonus.
-				'⚔︎ [CR+] Q[~fp~] ≥ 5×CD': rule((a, c) => a.flower_plume() && qLargerEq(a, c, { cd: 5 })),
-				'⚔︎ [CR+] BD/EM[~sg~] | Q ≥ 6×CR': rule((a, c) => !a.circlet() && a.affixIn('bd', 'em') && qLargerEq(a, c, { cr: 6 })),
-				'⚔︎ [CR+] ED[~g~] | Q ≥ 5×CR': rule((a, c) => a.goblet('ed') && matchSetBonus(a) && qLargerEq(a, c, { cr: 5 })),
-				'⚔︎ [CR+] BD/EM[~c~] | Q ≥ 5×CD': rule((a, c) => a.circlet('bd', 'em') && qLargerEq(a, c, { cd: 5 })),
+				'⚔︎ [CR+] [~fp~] | CD ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['cd']), 5)),
+				'⚔︎ [CR+] [~fp~] | CR ≥ ×6': rule(a => a.flower_plume() && largerEq(rMax(a, ['cr']), 6)),
+				// Redundant by off-set rule: '⚔︎ [CR+] BD/EM[~sg~] | CR ≥ ×6': rule(a => !a.circlet() && a.affixIn('bd', 'em') && largerEq(rMax(a, ['cr']), 6)),
+				// Redundant by off-set rule: '⚔︎ [CR+] ED[~g~] | CR ≥ ×5': rule(a => a.goblet('ed') && matchSetBonus(a) && largerEq(rMax(a, ['cr']), 5)),
+				'⚔︎ [CR+] BD/EM[~c~] | CD ≥ ×5': rule(a => a.circlet('bd', 'em') && largerEq(rMax(a, ['cd']), 5)),
 				'⚔︎ [CR+] CR[~c~] | Q ≥ 5×CR': rule((a, c) => a.circlet('cr') && qLargerEq(a, c, { cr: 5 })),
 				'⚔︎ [CR+] CD[~c~] | Q ≥ 4×CR': rule((a, c) => a.circlet('cd') && qLargerEq(a, c, { cr: 4 })),
 			}),
 			(a) => a.setIn(...lovesDEF) && rules({ // Sets with lower DEF% requirements.
-				'⚔︎ DEF[~s~] | Q ≥ 4×CD': rule((a, c) => a.sands('def') && qLargerEq(a, c, { cd: 4 })),
+				'⚔︎ DEF[~s~] | CV ≥ ×4': rule((a, c) => a.sands('def') && largerEq(rSum(a, ['cr', 'cd']), 4)),
 			}),
 			(a) => a.setIn(...lovesHP) && rules({ // Sets with lower HP% requirements.
-				'⚔︎ HP[~s~] | Q ≥ 4×CD': rule((a, c) => a.sands('hp') && qLargerEq(a, c, { cd: 4 })),
+				'⚔︎ HP[~s~] | CV ≥ ×4': rule((a, c) => a.sands('hp') && largerEq(rSum(a, ['cr', 'cd']), 4)),
 			}),
 			(a) => !a.setIn(...neglectsEM) && rules({ // Sets with lower EM requirements.
-				'⚔︎ EM[~sg~] | Q ≥ 4×CD': rule((a, c) => !a.circlet() && a.affixIn('em') && qLargerEq(a, c, { cd: 4 })),
-				'⚔︎ EM[~c~] | Q ≥ 5×CD': rule((a, c) => a.circlet() && a.affixIn('em') && qLargerEq(a, c, { cd: 5 })), // Applying set coeffs.
+				'⚔︎ EM[~sg~] | CV ≥ ×4': rule((a, c) => !a.circlet() && a.affixIn('em') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+				'⚔︎ EM[~c~] | CV ≥ ×5': rule((a, c) => a.circlet() && a.affixIn('em') && largerEq(rSum(a, ['cr', 'cd']), 5)),
 			}),
 
 			(a) => a.setIn('MB', 'VV', 'AP', 'OHC', 'SDP') && rules(utility('atk')), // Sets that wants ER% & ATK% utility parts.
