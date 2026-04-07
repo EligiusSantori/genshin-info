@@ -15,7 +15,7 @@ var ruleset, coeffsFor, groupsFor;
 	sets.dendro.push('WT', 'GD', 'FPL', 'UR'); // Tighnari, Nahida, bloom, burning.
 	sets.pd.push('OHC'); // Qiqi.
 	const usedByHealers = [...sets.hb, 'NO', 'VV', 'DM', 'SHCC'];
-	const lovesDEF = [...sets.def, 'NO', 'MB', 'AP', 'OHC', 'MH', 'NSU'];
+	const lovesDEF = [...sets.def, 'NO', 'MB', 'AP', 'OHC', 'MH', 'NSU', 'SMS', 'AMM'];
 	const lovesHP = [...sets.hp, 'NO', 'MB', 'CWF', 'HD', 'ESF', 'OHC', 'FPL'/*?*/, 'MH', 'GT', 'SDP', 'OC', 'NSU', 'SMS', 'AMM'];
 	const neglectsEM = ['BC', 'AP', 'BS', 'PF', 'HOD', 'NWEW', 'FDG'];
 	const lovesEM = ['CWF', 'SR', 'DM', 'ND'/*Tartaglia*/, 'OC', 'SMS'];
@@ -35,14 +35,16 @@ var ruleset, coeffsFor, groupsFor;
 		[...sets.em, ...lovesEM, 'NO', 'ESF', 'SHCC', { em: 1 }], // roll(EM) = roll(BD) // TODO? GD:(50/19.5)/(14/4.95), ...?
 		[...mainsEM, { em: toCrit }], // roll(EM) = roll(CD)
 		[...sets.er, 'NO', 'MB', 'GT'/*Furina C4-*/, 'NSU'/* Flins&Lauma */, { er: 1 }], // roll(ER) = roll(BD)
-		['HOD', { atk: baseLower }], // [Noelle] roll(ATK) = 1/2 roll(CD)
+		['HOD', 'VV', { atk: baseLower }], // [Noelle] roll(ATK) = 1/2 roll(CD) | (ATK+EM) for VV.
 		['VG', { hp: baseLower }], // [Dehya] roll(HP) = 1/2 roll(CD)
 		['BS'/*unfreezables*/, 'MH', 'OC', 'NSU', { cr: math.multiply(2, toBase) }], // roll(CR) = roll(BD)
 		['OHC', { atk: 1, def: 1, hp: 1, er: 1, em: 1 }], // roll(BD) = roll(EM) = roll(ER) = 3/4 roll(CD)
+		['bare', { atk: 0, def: 0, hp: 0, er: 1, em: 0 }],
+		['reset', { atk: 1, def: 1, hp: 1, er: 1, em: 1 }],
 	];
 	const dedoubleBySet = [ // Searching sets from tail. // TODO { sets: [], groups: []}
 		[['atk', 'def', 'hp', 'em']], // CV+ATK/DEF/HP/EM
-		[...lovesEM, ...mainsEM, ..._.without(sets.em, 'WT'), ['atk', 'def', 'hp']], // CV+ATK/DEF/HP+EM
+		[...lovesEM, ...mainsEM, ..._.without(sets.em, 'WT'), 'VV', ['atk', 'def', 'hp']], // CV+ATK/DEF/HP+EM
 		['CWF', [['atk', 'hp'], 'def']], // CV+(ATK+HP)/DEF+EM
 		['VG', [['atk', 'hp'], 'def', 'em']], // CV+(ATK+HP)/DEF/EM
 		['HOD', [['atk', 'def'], 'hp', 'em']], // CV+(ATK+DEF)/HP/EM
@@ -51,6 +53,7 @@ var ruleset, coeffsFor, groupsFor;
 	// Language extensions.
 	const coeffsBy = (set) => _.assign({ }, ...coeffsBySet.map(row => row.length == 1 || row.includes(set) ? _.last(row) : { }));
 	const dedoubleBy = (set) => _.last(_.findLast(dedoubleBySet, row => row.length == 1 || set && row.includes(set))) || [];
+	const barefy = (coeffs) => _.assign({ }, coeffs, { atk: 0, def: 0, hp: 0, em: 0 });
 	// const adaptiveEM() EM dependant on goblet element (elemental & physical).
 
 	const rule = function(...args) {
@@ -84,42 +87,66 @@ var ruleset, coeffsFor, groupsFor;
 		(a.affixIn('cr') && a.setIn(...sets.cr)) ||
 		(a.affixIn('hb') && a.setIn(...usedByHealers)); // Using extended healing bonus list.
 
-	const utility = (affix, sharp = false) => { const AFFIX = _.upperCase(affix), i = sharp ? 1 : 0; return {
-		[`⚙️ [${AFFIX}+] [~fp~] | ${AFFIX}/ER/CR ≥ ×${5+i}`]: rule(false, a => a.flower_plume() && largerEq(rMax(a, [affix, 'er', 'cr']), 5+i)),
-		[`⚙️ [${AFFIX}+] [~fp~] | ${AFFIX}+(ER/CR) ≥ ×${6+i}`]: rule(false, a => a.flower_plume() && largerEq(add(...summax(a, affix, ['er', 'cr'])), 6+i)),
-		[`⚙️ [${AFFIX}+] [~fp~] | ${AFFIX}+ER+CR ≥ ×${7+i}`]: rule(false, a => a.flower_plume() && largerEq(rSum(a, [affix, 'er', 'cr']), 7+i)),
-		[`⚙️ [${AFFIX}+] [${AFFIX}][~sgc~] | ER ≥ ×${4+i}`]: rule(false, a => a.affixIn(affix) && largerEq(rMax(a, ['er']), 4+i)),
-		[`⚙️ [${AFFIX}+] [${AFFIX}][~sgc~] | CR ≥ ×5`]: rule(false, a => a.affixIn(affix) && largerEq(rMax(a, ['cr']), 5)),
-		[`⚙️ [${AFFIX}+] [${AFFIX}][~sgc~] | ER+CR ≥ ×${6+i}`]: rule(false, a => a.affixIn(affix) && largerEq(rSum(a, ['er', 'cr']), 6+i)),
-		[`⚙️ [${AFFIX}+] ER/CR[~sc~] | ${AFFIX}/ER/CR ≥ ×${4+i}`]: rule(false, a => a.affixIn('er', 'cr') && largerEq(rMax(a, [affix, 'er', 'cr']), 4+i)),
-		[`⚙️ [${AFFIX}+] ER/CR[~sc~] | ${AFFIX}+ER+CR ≥ ×${5+i}`]: rule(false, a => a.affixIn('er', 'cr') && largerEq(rSum(a, [affix, 'er', 'cr']), 5+i)),
-	}};
+	const utility = function(affix, tweak = 0) {
+		const AFFIX = _.upperCase(affix);
+		let rules = {};
+		tweak = Math.min(1, Math.max(-1, tweak));
+
+		const ip = Math.max(0, tweak); // Only strict rules.
+		rules[`⚙️ [${AFFIX}+] [~fp~] | (${AFFIX}/CR)+ER ≥ ×${6 + ip}`] =
+			rule(false, a => a.flower_plume() && largerEq(add(...summax(a, ['er'], [affix, 'cr'])), 6 + ip));
+		rules[`⚙️ [${AFFIX}+] [~fp~] | ${AFFIX}+ER+CR ≥ ×${7 + ip}`] =
+			rule(false, a => a.flower_plume() && largerEq(rSum(a, [affix, 'er', 'cr']), 7 + ip));
+		rules[`⚙️ [${AFFIX}+] ER/CR[~sc~] | ER/CR ≥ ×${4 + ip}`] =
+			rule(false, a => a.affixIn('er', 'cr') && largerEq(rMax(a, ['er', 'cr']), 4 + ip));
+
+		const im = Math.min(0, tweak); // Only loose rules.
+		rules[`⚙️ [${AFFIX}+] [${AFFIX}][~sgc~] | CR ≥ ×${5 + im}`] =
+			rule(false, a => a.affixIn(affix) && largerEq(rMax(a, ['cr']), 5 + im));
+
+		const i = tweak; // Loose and strict rules.
+		rules[`⚙️ [${AFFIX}+] [${AFFIX}][~sgc~] | ER ≥ ×${4 + i}`] =
+			rule(false, a => a.affixIn(affix) && largerEq(rMax(a, ['er']), 4 + i));
+		rules[`⚙️ [${AFFIX}+] [${AFFIX}][~sgc~] | ER+CR ≥ ×${6 + i}`] =
+			rule(false, a => a.affixIn(affix) && largerEq(rSum(a, ['er', 'cr']), 6 + i));
+		rules[`⚙️ [${AFFIX}+] ER/CR[~sc~] | ${AFFIX} ≥ ×${4 + i}`] =
+			rule(false, a => a.affixIn('er', 'cr') && largerEq(rMax(a, [affix]), 4 + i));
+		rules[`⚙️ [${AFFIX}+] ER/CR[~sc~] | ${AFFIX}+ER+CR ≥ ×${5 + i}`] =
+			rule(false, a => a.affixIn('er', 'cr') && largerEq(rSum(a, [affix, 'er', 'cr']), 5 + i));
+
+		return rules;
+	};
 
 	ruleset = new Ruleset(coeffsBy(), {
 		'⚙️ ER ≥ 30% (off-set)': rule(false, a => !a.sands() && a.er >= 30), // Mostly for Mona.
 		'⚙️ ER+CR ≥ ×7 (off-set)': rule(false, a => largerEq(rSum(a, ['er', 'cr']), 7)), // Mostly for Rosaria.
-		'⚔︎ EM[~sgc~] | Q ≥ 5×CD (off-set)': rule((a, c) => a.affixIn('em') && qLargerEq(a, c, { cd: 5 })),
+		'⚔︎ EM[~sgc~] | Q ≥ 5×CV (off-set)': rule(dedoubleBy(), a => a.affixIn('em') && qLargerEq(a, coeffsBy('bare'), { cd: 5 })),
 
-		'⚔︎ Q[~fp~] ≥ 7×CD (off-set)': rule((a, c) => a.flower_plume() && qLargerEq(a, c, { cd: 7 })),
+		'⚔︎ Q[~fp~] ≥ 7×CD (off-set)': rule(dedoubleBy(), a => a.flower_plume() && qLargerEq(a, coeffsBy('reset'), { cd: 7 })),
 
-		'⚔︎ BD[~s~] | Q ≥ 6×CD (off-set)': rule((a, c) => a.sands('bd') && qLargerEq(a, c, { cd: 6 })),
-		'⚔︎ ER[~s~] | Q ≥ 5×CD (off-set)': rule((a, c) => a.sands('er') && qLargerEq(a, c, { cd: 5 })),
+		'⚔︎ ER[~s~] | Q ≥ 5×CV (off-set)': rule(dedoubleBy(), a => a.sands('er') && qLargerEq(a, coeffsBy('bare'), { cd: 5 })),
+		'⚔︎ BD[~s~] | Q ≥ 6×CD (off-set)': rule(dedoubleBy(), a => a.sands('bd') && qLargerEq(a, coeffsBy('reset'), { cd: 6 })),
 
-		'⚔︎ ED[~g~] | Q ≥ 5×CD (off-set)': rule((a, c) => a.goblet('ed') && qLargerEq(a, c, { cd: 5 })),
-		'⚔︎ BD[~g~] | Q ≥ 6×CD (off-set)': rule((a, c) => a.goblet('bd') && qLargerEq(a, c, { cd: 6 })),
-		'⚔︎ PD[~g~] | Q ≥ 6×CD (off-set)': rule((a, c) => a.goblet('pd') && qLargerEq(a, c, { cd: 6 })),
+		'⚔︎ ED[~g~] | Q ≥ 5×CV (off-set)': rule(dedoubleBy(), a => a.goblet('ed') && qLargerEq(a, coeffsBy('bare'), { cd: 5 })),
+		'⚔︎ ED[~g~] | Q ≥ 6×CD (off-set)': rule(dedoubleBy(), a => a.goblet('ed') && qLargerEq(a, coeffsBy('reset'), { cd: 6 })),
+		'⚔︎ BD[~g~] | Q ≥ 6×CD (off-set)': rule(dedoubleBy(), a => a.goblet('bd') && qLargerEq(a, coeffsBy('reset'), { cd: 6 })),
+		'⚔︎ PD[~g~] | Q ≥ 6×CV (off-set)': rule(dedoubleBy(), a => a.goblet('pd') && qLargerEq(a, coeffsBy('bare'), { cd: 6 })),
 
-		'⚔︎ CV[~c~] | CV ≥ ×4 (off-set)': rule((a, c) => a.circlet('cv') && largerEq(rSum(a, ['cr', 'cd']), 4)),
-		'⚔︎ CV[~c~] | Q ≥ 5×CD (off-set)': rule((a, c) => a.circlet('cv') && qLargerEq(a, c, { cd: 5 })),
-		'⚔︎ BD[~c~] | Q ≥ 7×CD (off-set)': rule((a, c) => a.circlet('bd') && qLargerEq(a, c, { cd: 7 })),
-		'⚕️ HB[~c~] | BD/EM/ER/CV ≥ ×5 (off-set)': rule(a => a.circlet('hb') && largerEq(summax(a, [], [], true)[1], 5)),
-		'⚕️ HB[~c~] | ER+(BD/EM/CV) ≥ ×6 (off-set)': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'er', [], true)), 6)),
-		'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×7 (off-set)': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 7)),
+		'⚔︎ CV[~c~] | Q ≥ 4×CV (off-set)': rule(dedoubleBy(), a => a.circlet('cv') && qLargerEq(a, coeffsBy('bare'), { cd: 4 })),
+		'⚔︎ CV[~c~] | Q ≥ 5×CD (off-set)': rule(dedoubleBy(), a => a.circlet('cv') && qLargerEq(a, coeffsBy('reset'), { cd: 5 })),
+		'⚔︎ BD[~c~] | Q ≥ 7×CD (off-set)': rule(dedoubleBy(), a => a.circlet('bd') && qLargerEq(a, coeffsBy('reset'), { cd: 7 })),
+
+		'⚕️ HB[~c~] | ER/BD/EM/CR ≥ ×5 (off-set)': rule(false, a => a.circlet('hb') && largerEq(rMax(a, ['er', 'bd', 'em', 'cr']), 5)),
+		'⚕️ HB[~c~] | CV ≥ ×6 (off-set)': rule(false, a => a.circlet('hb') && largerEq(rSum(a, ['cr', 'cd']), 6)),
+		'⚕️ HB[~c~] | ER+(BD/EM/CR) ≥ ×6 (off-set)': rule(false, a => a.circlet('hb') && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 6)),
+		'⚕️ HB[~c~] | ER+CV ≥ ×7 (off-set)': rule(false, a => a.circlet('hb') && largerEq(rSum(a, ['er', 'cr', 'cd']), 7)),
+		'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×7 (off-set)': rule(false, a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 7)),
+		'⚕️ HB[~c~] | ER+CR+(BD/EM) ≥ ×8 (off-set)': rule(false, a => a.circlet('hb') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 8)),
 	}, [
 		new Ruleset((a) => coeffsBy(a.set), { // Set dependant category.
 			'⚔︎ Q[~fp~] ≥ 6×CD': rule((a, c) => a.flower_plume() && qLargerEq(a, c, { cd: 6 })),
 
-			'⚔︎ ATK/ER[~s~] | CV ≥ ×4': rule((a, c) => a.sands('atk', 'er') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+			'⚔︎ ATK/ER[~s~] | Q ≥ 4×CV': rule((a, c) => a.sands('atk', 'er') && qLargerEq(a, barefy(c), { cd: 4 })),
 			'⚔︎ BD/ER[~s~] | Q ≥ 5×CD': rule((a, c) => a.sands('bd', 'er') && qLargerEq(a, c, { cd: 5 })),
 
 			'⚔︎ BD[~g~] | Q ≥ 5×CD': rule((a, c) => a.goblet('bd') && qLargerEq(a, c, { cd: 5 })),
@@ -129,12 +156,16 @@ var ruleset, coeffsFor, groupsFor;
 			'⚔︎ BD[~c~] | Q ≥ 6×CD': rule((a, c) => a.circlet('bd') && qLargerEq(a, c, { cd: 6 })),
 		}, [
 			(a) => matchSetBonus(a) && rules({ // In-set goblets & helmets.
-				'⚔︎ ED[~g~] | CV ≥ ×4': rule((a, c) => a.goblet('ed') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+				'⚔︎ ED[~g~] | Q ≥ 4×CV': rule((a, c) => a.goblet('ed') && qLargerEq(a, barefy(c), { cd: 4 })),
 				'⚔︎ ED[~g~] | Q ≥ 5×CD': rule((a, c) => a.goblet('ed') && qLargerEq(a, c, { cd: 5 })),
-				'⚔︎ PD[~g~] | CV ≥ ×5': rule((a, c) => a.goblet('pd') && largerEq(rSum(a, ['cr', 'cd']), 5)),
+				'⚔︎ PD[~g~] | Q ≥ 5×CV': rule((a, c) => a.goblet('pd') && qLargerEq(a, barefy(c), { cd: 5 })),
+				'⚔︎ PD[~g~] | Q ≥ 6×CD': rule((a, c) => a.goblet('pd') && qLargerEq(a, c, { cd: 6 })),
 
-				'⚕️ HB[~c~] | ER+(CV/BD/EM) ≥ ×3': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'er', [], true)), 3)),
-				'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×3': rule(a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 3)),
+				'⚕️ HB[~c~] | CV ≥ ×5': rule(false, a => a.circlet('hb') && largerEq(rSum(a, ['cr', 'cd']), 5)),
+				'⚕️ HB[~c~] | ER+(BD/EM/CR) ≥ ×3': rule(false, a => a.circlet('hb') && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 3)),
+				'⚕️ HB[~c~] | ER+CV ≥ ×6': rule(false, a => a.circlet('hb') && largerEq(rSum(a, ['er', 'cr', 'cd']), 6)),
+				'⚕️ HB[~c~] | CR+(BD/EM) ≥ ×4': rule(false, a => a.circlet('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 4)),
+				'⚕️ HB[~c~] | ER+CR+(BD/EM) ≥ ×5': rule(false, a => a.circlet('hb') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 5)),
 			}),
 			(a) => a.setIn(...sets.cr) && rules({ // Sets with CR bonus.
 				'⚔︎ [CR+] [~fp~] | CD ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['cd']), 5)),
@@ -146,75 +177,76 @@ var ruleset, coeffsFor, groupsFor;
 				'⚔︎ [CR+] CD[~c~] | Q ≥ 4×CR': rule((a, c) => a.circlet('cd') && qLargerEq(a, c, { cr: 4 })),
 			}),
 			(a) => a.setIn(...lovesDEF) && rules({ // Sets with lower DEF% requirements.
-				'⚔︎ DEF[~s~] | CV ≥ ×4': rule((a, c) => a.sands('def') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+				'⚔︎ DEF[~s~] | Q ≥ 4×CV': rule((a, c) => a.sands('def') && qLargerEq(a, barefy(c), { cd: 4 })),
 			}),
 			(a) => a.setIn(...lovesHP) && rules({ // Sets with lower HP% requirements.
-				'⚔︎ HP[~s~] | CV ≥ ×4': rule((a, c) => a.sands('hp') && largerEq(rSum(a, ['cr', 'cd']), 4)),
+				'⚔︎ HP[~s~] | Q ≥ 4×CV': rule((a, c) => a.sands('hp') && qLargerEq(a, barefy(c), { cd: 4 })),
 			}),
 			(a) => !a.setIn(...neglectsEM) && rules({ // Sets with lower EM requirements.
-				'⚔︎ EM[~sg~] | CV ≥ ×4': rule((a, c) => !a.circlet() && a.affixIn('em') && largerEq(rSum(a, ['cr', 'cd']), 4)),
-				'⚔︎ EM[~c~] | CV ≥ ×5': rule((a, c) => a.circlet() && a.affixIn('em') && largerEq(rSum(a, ['cr', 'cd']), 5)),
+				'⚔︎ EM[~sg~] | Q ≥ 4×CV': rule((a, c) => !a.circlet() && a.affixIn('em') && qLargerEq(a, barefy(c), { cd: 4 })),
+				'⚔︎ EM[~sg~] | Q ≥ 5×CD': rule((a, c) => !a.circlet() && a.affixIn('em') && qLargerEq(a, c, { cd: 5 })),
 			}),
 
-			(a) => a.setIn('MB', 'VV', 'AP', 'OHC', 'SDP') && rules(utility('atk')), // Sets that wants ER% & ATK% utility parts.
-			(a) => a.setIn(...sets.def, 'AP', 'OHC', 'SDP') && rules(utility('def')), // Sets that wants ER% & DEF% utility parts.
-			(a) => a.setIn(...sets.hp, 'MB', 'AP', 'OHC', 'SDP') && rules(utility('hp')), // Sets that wants ER% & HP% utility parts.
-			(a) => a.setIn('GD', 'FPL', 'VV', 'OHC', 'SDP') && rules(utility('em')), // Sets that wants ER% & EM utility parts.
+			(a) => a.setIn('NO', 'MB', 'VV', 'AP', 'OHC', 'DM', 'SDP', 'SHCC', 'SMS') && rules(utility('atk')), // Sets that wants ER% & ATK% utility parts.
+			(a) => a.setIn(...sets.def, 'AP', 'SHCC', 'SMS') && rules(utility('def')), // Sets that wants ER% & DEF% utility parts.
+			(a) => a.setIn(...sets.hp, 'NO', 'MB', 'AP', 'OHC', 'DM', 'SDP', 'SMS') && rules(utility('hp')), // Sets that wants ER% & HP% utility parts.
+			(a) => a.setIn('NO', 'DM', 'GD', 'SMS') && rules(utility('em')), // Sets that wants ER% & EM utility parts.
 
-			(a) => a.setIn(...sets.atk) && rules(utility('atk', true)), // Widespread sets with ATK bonus that wants ER% & ATK% utility parts.
-			(a) => a.setIn('MB', 'VV') && rules(utility('def', true)), // Sets that wants low-priority ER% & DEF% utility parts.
-			(a) => a.setIn('VV') && rules(utility('hp', true)), // Sets that wants low-priority ER% & HP% utility parts.
-			(a) => a.setIn('WT', 'MB', 'AP', 'NSU', 'AMM') && rules(utility('em', true)), // Combat sets that wants ER% & EM utility parts.
+			(a) => a.setIn(...sets.atk) && rules(utility('atk', +1)), // Widespread sets with ATK bonus that wants ER% & ATK% utility parts.
+			(a) => a.setIn('NO', 'MB', 'VV', 'OHC', 'DM', 'SDP') && rules(utility('def', +1)), // Sets that low-priority wants ER% & DEF% utility parts.
+			(a) => a.setIn('VV', 'SHCC') && rules(utility('hp', +1)), // Sets that low-priority wants ER% & HP% utility parts.
+			(a) => a.setIn('WT', 'MB', 'AP', 'OHC', 'SDP', 'NSU', 'AMM') && rules(utility('em', +1)), // Combat sets that wants ER% & EM utility parts.
+			(a) => a.setIn('VV', 'FPL', 'SHCC') && rules(utility('em', -1)), // Sets that high-priority wants ER% & EM utility parts.
 
-			(a) => a.setIn(...sets.er, 'NO', 'SHCC') && rules({ // Sets with full utility rules (for all stats).
-				'⚙️ [ER+] [~fp~] | ER/CR ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['er', 'cr']), 5)),
-				'⚙️ [ER+] [~fp~] | ER+(BD/EM) ≥ ×6': rule(a => a.flower_plume() && largerEq(add(...summax(a, 'er', ['bd', 'em'])), 6)),
-				'⚙️ [ER+] [~fp~] | CR+(ER/BD/EM) ≥ ×7': rule(a => a.flower_plume() && largerEq(add(...summax(a, 'cr', ['er', 'bd', 'em'])), 7)),
-				'⚙️ [ER+] [~fp~] | ER+CR+(BD/EM) ≥ ×8': rule(a => a.flower_plume() && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 8)),
-				'⚙️ [ER+] EM[~sgc~] | ER/CR ≥ ×4': rule(a => a.affixIn('em') && largerEq(rMax(a, ['er', 'cr']), 4)),
-				'⚙️ [ER+] BD[~sgc~] | ER/CR ≥ ×5': rule(a => a.affixIn('bd') && largerEq(rMax(a, ['er', 'cr']), 5)),
-				'⚙️ [ER+] BD/EM[~sgc~] | ER+CR ≥ ×6': rule(a => a.affixIn('bd', 'em') && largerEq(rSum(a, ['er', 'cr']), 6)),
-				'⚙️ [ER+] ER/CR[~sc~] | ER/BD/EM/CR ≥ ×4': rule(a => a.affixIn('er', 'cr') && largerEq(rMax(a, ['er', 'bd', 'em', 'cr']), 4)),
-				'⚙️ [ER+] ER/CR[~sc~] | (ER/CR)+(BD/EM) ≥ ×5': rule(a => a.affixIn('er', 'cr') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 5)),
-				'⚕️ [ER+] HB[~c~] | ER/BD/EM/CR ≥ ×4': rule(a => a.affixIn('hb') && largerEq(rMax(a, ['er', 'bd', 'em', 'cr']), 4)),
-				'⚕️ [ER+] HB[~c~] | ER+(BD/EM/CR) ≥ ×5': rule(a => a.affixIn('hb') && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 5)),
-				'⚕️ [ER+] HB[~c~] | CR+(BD/EM) ≥ ×5': rule(a => a.affixIn('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 5)),
-				'⚕️ [ER+] HB[~c~] | ER+CR+(BD/EM) ≥ ×6': rule(a => a.affixIn('hb') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 6)),
-			}), (a) => a.setIn('NO', 'SHCC') && rules({
-				'⚙️ [ER+] ER[~s~] | BD/EM ≥ ×3': rule(a => a.affixIn('er') && largerEq(rMax(a, ['bd', 'em']), 3)),
-				'⚙️ [ER+] EM[~sgc~] | ER ≥ ×3': rule(a => a.affixIn('em') && largerEq(rMax(a, ['er']), 3)),
-			}), (a) => a.setIn('SHCC') && rules({
-				'⚙️ [ER+] [~fp~] | EM ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['em']), 5)),
-				'⚙️ [ER+] BD[~sgc~] | ER ≥ ×4': rule(a => a.affixIn('bd') && largerEq(rMax(a, ['er']), 4)),
-			}), (a) => a.setIn('NO') && rules({
-				'⚙️ [ER+] [~fp~] | ER+(BD/EM) ≥ ×5': rule(a => a.flower_plume() && largerEq(add(...summax(a, 'er', ['bd', 'em'])), 5)),
-				'⚙️ [ER+] BD[~sgc~] | ER ≥ ×3': rule(a => a.affixIn('bd') && largerEq(rMax(a, ['er']), 3)),
+			(a) => a.setIn(...sets.atk) && rules({ // Fixes for BD+ sets.
+				'⚙️ [ATK+] [~fp~] | ATK ≥ ×6': rule(false, a => a.flower_plume() && largerEq(rMax(a, ['atk']), 6)),
+			}), (a) => a.setIn(...sets.def) && rules({
+				'⚙️ [DEF+] [~fp~] | DEF ≥ ×6': rule(false, a => a.flower_plume() && largerEq(rMax(a, ['def']), 6)),
+			}), (a) => a.setIn(...sets.hp) && rules({
+				'⚙️ [HP+] [~fp~] | HP ≥ ×5': rule(false, a => a.flower_plume() && largerEq(rMax(a, ['hp']), 5)),
+			}), (a) => a.setIn(...sets.em) && rules({
+				'⚙️ [EM+] [~fp~] | EM ≥ ×6': rule(false, a => a.flower_plume() && largerEq(rMax(a, ['em']), 6)),
+			}), (a) => a.setIn('GD', 'FPL') && rules({
+				'⚙️ [EM+] [~fp~] | EM ≥ ×5': rule(false, a => a.flower_plume() && largerEq(rMax(a, ['em']), 5)),
 			}),
 
-			(a) => a.setIn('DM', 'FPL', 'SMS') && rules({ // Sets with full utility rules (when EM = BD).
-				'⚙️ [EM&BD] [~fp~] | ER/CR ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['er', 'cr']), 5)),
-				'⚙️ [EM&BD] [~fp~] | (EM/BD/CR)+ER ≥ ×6': rule(a => a.flower_plume() && largerEq(add(...summax(a, ['er'], ['em', 'bd', 'cr'])), 6)),
-				'⚙️ [EM&BD] [~fp~] | (EM/BD)+ER+CR ≥ ×7': rule(a => a.flower_plume() && largerEq(add(...summax(a, ['er', 'cr'], ['em', 'bd'])), 7)),
-				'⚙️ [EM&BD] [~fp~] | (EM+BD)+(ER/CR) ≥ ×7': rule(a => a.flower_plume() && largerEq(add(...summax(a, ['em', 'bd'], ['er', 'cr'])), 7)),
-				'⚙️ [EM&BD] [~fp~] | (EM+BD)+ER+CR ≥ ×8': rule(a => a.flower_plume() && largerEq(rSum(a, ['em', 'bd', 'er', 'cr']), 8)),
-				'⚙️ [EM&BD] BD[~sgc~] | ER/CR ≥ ×5': rule(a => a.affixIn('bd') && largerEq(rMax(a, ['er', 'cr']), 5)),
-				'⚙️ [EM&BD] BD[~sgc~] | EM+ER ≥ 6': rule(a => a.affixIn('bd') && largerEq(rSum(a, ['em', 'er']), 6)),
-				'⚙️ [EM&BD] BD[~sgc~] | (EM/ER)+CR ≥ 6': rule(a => a.affixIn('bd') && largerEq(add(...summax(a, ['cr'], ['em', 'er'])), 6)),
-				'⚙️ [EM&BD] BD[~sgc~] | EM+ER+CR ≥ 7': rule(a => a.affixIn('bd') && largerEq(rSum(a, ['em', 'er', 'cr']), 7)),
-				'⚙️ [EM&BD] EM[~sgc~] | ER/CR ≥ ×4': rule(a => a.affixIn('em') && largerEq(rMax(a, ['er', 'cr']), 4)),
-				'⚙️ [EM&BD] EM[~sgc~] | BD+ER ≥ 5': rule(a => a.affixIn('em') && largerEq(rSum(a, ['bd', 'er']), 5)),
-				'⚙️ [EM&BD] EM[~sgc~] | (BD/ER)+CR ≥ 5': rule(a => a.affixIn('em') && largerEq(add(...summax(a, ['cr'], ['bd', 'er'])), 5)),
-				'⚙️ [EM&BD] EM[~sgc~] | BD+ER+CR ≥ 6': rule(a => a.affixIn('em') && largerEq(rSum(a, ['bd', 'er', 'cr']), 6)),
-				'⚙️ [EM&BD] ER/CR/HB[~sc~] | EM/BD/ER/CR ≥ ×4': rule(a => a.affixIn('er', 'cr', 'hb') && largerEq(rMax(a, ['em', 'bd', 'er', 'cr']), 4)),
-				'⚙️ [EM&BD] ER/CR/HB[~sc~] | EM+BD ≥ 5': rule(a => a.affixIn('er', 'cr', 'hb') && largerEq(rSum(a, ['em', 'bd']), 5)),
-				'⚙️ [EM&BD] ER/CR/HB[~sc~] | (EM/BD)+ER+CR ≥ ×5': rule(a => a.affixIn('er', 'cr', 'hb') && largerEq(add(...summax(a, ['er', 'cr'], ['em', 'bd'])), 5)),
-				'⚙️ [EM&BD] ER/CR/HB[~sc~] | (EM+BD)+ER+CR ≥ ×6': rule(a => a.affixIn('er', 'cr', 'hb') && largerEq(rSum(a, ['em', 'bd', 'er', 'cr']), 6)),
-				'⚕️ [EM&BD] HB[~c~] | (EM+BD)+(ER/CR) ≥ ×5': rule(a => a.affixIn('hb') && largerEq(add(...summax(a, ['em', 'bd'], ['er', 'cr'])), 5)),
-			}), (a) => a.setIn('FPL') && rules({
-				'⚙️ [EM&BD] [~fp~] | BD ≥ ×5': rule(a => a.flower_plume() && largerEq(rMax(a, ['bd']), 5)),
-				'⚙️ [EM&BD] [~fp~] | EM+BD ≥ ×6': rule(a => a.flower_plume() && largerEq(rSum(a, ['em', 'bd']), 6)),
-				'⚙️ [EM&BD] BD[~sgc~] | EM ≥ ×5': rule(a => a.affixIn('bd') && largerEq(rMax(a, ['em']), 5)),
-				'⚙️ [EM&BD] EM[~sgc~] | BD ≥ ×4': rule(a => a.affixIn('em') && largerEq(rMax(a, ['bd']), 4)),
+			(a) => a.setIn('NO', 'SHCC', 'SMS') && rules({ // Utility tweaks for specific sets.
+				'⚙️ [BD+] ER[~s~] | BD/EM ≥ ×3': rule(false, a => a.affixIn('er') && largerEq(rMax(a, ['bd', 'em']), 3)), // TODO ?
+			}), (a) => a.setIn('NO') && rules({ // Mostly for Bennett/Thoma/Shenhe/Layla/Mika/Rosaria/Xianyun/Chevreuse.
+				'⚙️ [NO] [~fp~] | CR+(ATK/HP/EM) ≥ ×6': rule(false, a => a.flower_plume() && largerEq(add(...summax(a, 'cr', ['atk', 'hp', 'em'])), 6)),
+				'⚙️ [NO] ATK/HP/EM[~sgc~] | ER+CR ≥ ×5': rule(false, a => a.affixIn('atk', 'hp', 'em') && largerEq(rSum(a, ['er', 'cr']), 5)),
+			}), (a) => a.setIn('SHCC') && rules({ // Mostly for Kachina/Xilonen/Citlali/Iansan.
+				'⚙️ [SHCC] [~fp~] | CR+(ATK/DEF/EM) ≥ ×6': rule(false, a => a.flower_plume() && largerEq(add(...summax(a, 'cr', ['atk', 'def', 'em'])), 6)),
+				'⚙️ [SHCC] ATK/DEF/EM[~sgc~] | ER+CR ≥ ×5': rule(false, a => a.affixIn('atk', 'def', 'em') && largerEq(rSum(a, ['er', 'cr']), 5)),
+			}), (a) => a.setIn('SMS') && rules({ // Mostly for Aino/Jahoda/Illuga.
+				'⚙️ [SMS] [~fp~] | CR+(BD/EM) ≥ ×6': rule(false, a => a.flower_plume() && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 6)),
+				'⚙️ [SMS] BD/EM[~sgc~] | ER+CR ≥ ×5': rule(false, a => a.affixIn('bd', 'em') && largerEq(rSum(a, ['er', 'cr']), 5)),
+			}), (a) => a.setIn('FPL') && rules({ // Mostly for Nilou/Kuki/Thoma. TODO Durin?
+				'⚙️ [FPL] [~fp~] | HP ≥ ×4': rule(a => a.flower_plume() && largerEq(rMax(a, ['hp']), 4)),
+				'⚙️ [FPL] [~fp~] | HP+(EM/ER) ≥ ×6': rule(a => a.flower_plume() && largerEq(add(...summax(a, 'hp', ['em', 'er'])), 6)),
+				'⚙️ [FPL] [~fp~] | HP+EM+ER ≥ ×7': rule(a => a.flower_plume() && largerEq(rSum(a, ['hp', 'em', 'er']), 7)),
+				'⚙️ [FPL] HP[~sgc~] | EM/ER ≥ ×3': rule(a => a.affixIn('hp') && largerEq(rMax(a, ['em', 'er']), 3)),
+				'⚙️ [FPL] HP[~sgc~] | EM+ER ≥ ×5': rule(a => a.affixIn('hp') && largerEq(rSum(a, ['em', 'er']), 5)),
+				'⚙️ [FPL] EM[~sgc~] | HP ≥ ×5': rule(a => a.affixIn('em') && largerEq(rMax(a, ['hp']), 5)),
+				'⚙️ [FPL] EM[~sgc~] | HP+ER ≥ ×6': rule(a => a.affixIn('em') && largerEq(rSum(a, ['hp', 'er']), 5)),
+			}),
+
+			(a) => a.setIn(...sets.er) && rules({ // Sets with full utility rules (for all stats).
+				'⚙️ [ER+] [~fp~] | ER/CR ≥ ×5': rule(false, a => a.flower_plume() && largerEq(rMax(a, ['er', 'cr']), 5)),
+				'⚙️ [ER+] [~fp~] | ER+(BD/EM/CR) ≥ ×6': rule(false, a => a.flower_plume() && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 6)),
+				'⚙️ [ER+] [~fp~] | CR+(BD/EM) ≥ ×7': rule(false, a => a.flower_plume() && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 7)),
+				'⚙️ [ER+] [~fp~] | ER+CR+(BD/EM) ≥ ×8': rule(false, a => a.flower_plume() && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 8)),
+				'⚙️ [ER+] EM[~sgc~] | ER/CR ≥ ×4': rule(false, a => a.affixIn('em') && largerEq(rMax(a, ['er', 'cr']), 4)),
+				'⚙️ [ER+] BD[~sgc~] | ER/CR ≥ ×5': rule(false, a => a.affixIn('bd') && largerEq(rMax(a, ['er', 'cr']), 5)),
+				'⚙️ [ER+] BD/EM[~sgc~] | ER+CR ≥ ×6': rule(false, a => a.affixIn('bd', 'em') && largerEq(rSum(a, ['er', 'cr']), 6)),
+				'⚙️ [ER+] ER/CR[~sc~] | ER/BD/EM/CR ≥ ×4': rule(false, a => a.affixIn('er', 'cr') && largerEq(rMax(a, ['er', 'bd', 'em', 'cr']), 4)),
+				'⚙️ [ER+] ER/CR[~sc~] | (ER/CR)+(BD/EM) ≥ ×5': rule(false, a => a.affixIn('er', 'cr') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 5)),
+				'⚕️ [ER+] HB[~c~] | ER/BD/EM/CR ≥ ×4': rule(false, a => a.affixIn('hb') && largerEq(rMax(a, ['er', 'bd', 'em', 'cr']), 4)),
+				'⚕️ [ER+] HB[~c~] | CV ≥ ×5': rule(false, a => a.circlet('hb') && largerEq(rSum(a, ['cr', 'cd']), 5)),
+				'⚕️ [ER+] HB[~c~] | ER+(BD/EM/CR) ≥ ×5': rule(false, a => a.affixIn('hb') && largerEq(add(...summax(a, 'er', ['bd', 'em', 'cr'])), 5)),
+				'⚕️ [ER+] HB[~c~] | ER+CV ≥ ×6': rule(false, a => a.circlet('hb') && largerEq(rSum(a, ['er', 'cr', 'cd']), 6)),
+				'⚕️ [ER+] HB[~c~] | CR+(BD/EM) ≥ ×5': rule(false, a => a.affixIn('hb') && largerEq(add(...summax(a, 'cr', ['bd', 'em'])), 5)),
+				'⚕️ [ER+] HB[~c~] | ER+CR+(BD/EM) ≥ ×6': rule(false, a => a.affixIn('hb') && largerEq(add(...summax(a, ['er', 'cr'], ['bd', 'em'])), 6)),
 			}),
 
 			// TODO new Ruleset(), // Lauma: [NSU>SMS>DM/GD] CD & CR{<60/90} > EM & ER{~200} // Max CV, uses EM instead of ATK.
